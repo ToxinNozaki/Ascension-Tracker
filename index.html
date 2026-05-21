@@ -1002,8 +1002,8 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
 
     <div class="setting-row">
       <div>
-        <div class="sr-label">iOS Push Note</div>
-        <div class="sr-sub">Notifications fire while app is open.<br>Add to Home Screen for best results.</div>
+        <div class="sr-label">iOS Setup</div>
+        <div class="sr-sub">Requires iOS 16.4+ and <strong>Add to Home Screen</strong>.<br>Notifications reschedule each time you open the app — open it once daily to keep reminders firing.<br>Re-opens app when tapped. ✓</div>
       </div>
     </div>
 
@@ -2278,7 +2278,7 @@ function confirmReset() {
 // NOTIFICATIONS
 // ════════════════════════════════════════════════════════════════════════════
 function updateNotifUI() {
-  const perm   = Notification.permission;
+  const perm   = ('Notification' in window) ? Notification.permission : 'unsupported';
   const state  = getState();
   const enabled = state.notifsEnabled && perm === 'granted';
 
@@ -2287,23 +2287,30 @@ function updateNotifUI() {
   if (toggle) toggle.classList.toggle('on', enabled);
 
   const msgs = {
-    granted: enabled ? 'Notifications active ✓' : 'Permission granted — tap toggle to enable',
-    denied:  'Blocked in browser settings',
-    default: 'Tap toggle to request permission',
+    granted:     enabled ? 'Notifications active ✓' : 'Permission granted — tap toggle to enable',
+    denied:      'Blocked — go to Settings → [Your App] → Notifications',
+    default:     'Tap toggle to request permission',
+    unsupported: 'Add to Home Screen first (iOS requirement)',
   };
   if (status) status.textContent = msgs[perm] || msgs.default;
 }
 
 async function toggleNotifications() {
+  // iOS requires Notification API — only available in standalone PWA (home screen) or iOS 16.4+ Safari
+  if (!('Notification' in window)) {
+    showToast('Add app to Home Screen first to enable notifications.');
+    return;
+  }
+
   const state = getState();
 
   if (Notification.permission === 'denied') {
-    showToast('Notifications blocked. Enable in Settings > Safari > Notifications.');
+    showToast('Blocked — go to Settings → [App name] → Notifications to re-enable.');
     return;
   }
 
   if (!state.notifsEnabled) {
-    // Request permission
+    // Request permission — must be called from user gesture (toggle tap counts)
     const perm = await Notification.requestPermission();
     if (perm === 'granted') {
       state.notifsEnabled = true;
@@ -2311,7 +2318,7 @@ async function toggleNotifications() {
       scheduleNotifications();
       showToast('Notifications enabled! 🔔');
     } else {
-      showToast('Permission not granted.');
+      showToast('Permission denied. Check Settings if you want to re-enable.');
     }
   } else {
     state.notifsEnabled = false;
@@ -2330,9 +2337,20 @@ function scheduleNotificationsIfEnabled() {
 
 function scheduleNotifications() {
   if (!navigator.serviceWorker.controller) return;
+  const now     = new Date();
+  const dow     = now.getDay();
+  const tan     = getTanning();
+  const tanDay  = isTanningDay();
   navigator.serviceWorker.controller.postMessage({
     type: 'SCHEDULE',
-    preTan: isPreTanDay(),
+    payload: {
+      dow,
+      gymType:    GYM_DAYS[dow] || null,
+      skipTret:   isPreTanDay(),
+      tanToday:   tanDay,
+      tanMins:    tan.tanMins || 3,
+      isTanFriday: tanDay && dow === 5,
+    },
   });
 }
 
@@ -2420,6 +2438,18 @@ document.addEventListener('visibilitychange', () => {
     updateHeaderDate();
   }
 });
+
+// iOS: pageshow fires on back-navigation (bfcache restore) — visibilitychange doesn't always fire
+window.addEventListener('pageshow', (e) => {
+  if (e.persisted) { // restored from bfcache
+    scheduleNotificationsIfEnabled();
+    renderToday();
+    updateHeaderDate();
+  }
+});
+
+// iOS: re-schedule when window regains focus (e.g. returning from another app)
+window.addEventListener('focus', () => scheduleNotificationsIfEnabled());
 
 // ════════════════════════════════════════════════════════════════════════════
 // INIT
