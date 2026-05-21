@@ -1444,8 +1444,8 @@ function parseLocalDate(str) {
 function daysBetween(a, b) {
   return Math.round((b - a) / 86400000);
 }
-function addDays(dateStr, n) {
-  const d = parseLocalDate(dateStr);
+function addDays(ds, n) {
+  const d = parseLocalDate(ds);
   d.setDate(d.getDate() + n);
   return dateStr(d);
 }
