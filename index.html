@@ -225,6 +225,69 @@ button{cursor:pointer;border:none;background:none}
 }
 .exercise-item::before{content:'▸';color:var(--purple);font-size:12px}
 
+/* ── Tret timer ───────────────────────────────────────────────────────────── */
+.timer-wrap{margin-top:8px;display:flex;align-items:center;gap:8px;flex-wrap:wrap}
+.timer-btn{
+  padding:5px 12px;border-radius:20px;font-size:12px;font-weight:700;
+  background:rgba(168,85,247,.15);color:var(--purple);
+  border:1px solid rgba(168,85,247,.3);cursor:pointer;transition:background .15s;
+}
+.timer-btn:active{background:rgba(168,85,247,.3)}
+.timer-display{font-size:13px;font-weight:700;font-variant-numeric:tabular-nums}
+.timer-done-toast{
+  position:fixed;top:50%;left:50%;transform:translate(-50%,-50%) scale(0.8);
+  background:var(--green);color:#fff;padding:18px 28px;border-radius:20px;
+  font-size:18px;font-weight:800;text-align:center;z-index:999;
+  transition:all .3s;opacity:0;pointer-events:none;
+}
+.timer-done-toast.show{opacity:1;transform:translate(-50%,-50%) scale(1)}
+
+/* ── PR / Lift tracker ────────────────────────────────────────────────────── */
+.pr-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:18px}
+.pr-card{
+  background:var(--card);border:1px solid var(--border);border-radius:14px;
+  padding:12px 8px;text-align:center;
+}
+.pr-emoji{font-size:20px;margin-bottom:4px}
+.pr-label{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2);margin-bottom:4px}
+.pr-val{font-size:22px;font-weight:800;color:var(--green);line-height:1}
+.pr-sub{font-size:10px;color:var(--muted2);margin-top:3px;line-height:1.3}
+.pr-new{color:var(--gold);animation:pulse .4s ease 2}
+@keyframes pulse{0%,100%{transform:scale(1)}50%{transform:scale(1.12)}}
+
+.lift-log-card{
+  background:var(--card);border:1px solid var(--border);border-radius:16px;
+  padding:16px;margin-bottom:16px;
+}
+.lift-log-card h3{font-size:14px;font-weight:700;margin-bottom:12px}
+.lift-sel-row{display:flex;gap:6px;margin-bottom:12px;flex-wrap:wrap}
+.lift-sel{
+  padding:6px 14px;border-radius:20px;font-size:12px;font-weight:700;
+  background:var(--card2);border:1px solid var(--border);color:var(--muted2);
+  cursor:pointer;transition:all .15s;
+}
+.lift-sel.active{background:rgba(16,185,129,.15);border-color:rgba(16,185,129,.4);color:var(--green)}
+.lift-inputs{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+.lift-input{
+  width:100%;padding:10px 12px;border-radius:10px;border:1px solid var(--border);
+  background:var(--card2);color:var(--text);font-size:14px;font-weight:600;
+  -webkit-appearance:none;text-align:center;
+}
+.lift-input::placeholder{font-weight:400;color:var(--muted)}
+.lift-entry{
+  display:flex;align-items:center;gap:10px;
+  padding:10px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:12px;margin-bottom:6px;
+}
+.lift-entry.lift-pr{border-color:rgba(245,158,11,.4);background:rgba(245,158,11,.05)}
+.le-emoji{font-size:18px;flex-shrink:0}
+.le-info{flex:1;min-width:0}
+.le-name{font-size:13px;font-weight:700}
+.le-date{font-size:11px;color:var(--muted2)}
+.le-weight{font-size:16px;font-weight:800;color:var(--green)}
+.le-reps{font-size:12px;color:var(--muted2);flex-shrink:0}
+.le-unit{font-size:10px;color:var(--muted2)}
+
 /* ── Progress tab ─────────────────────────────────────────────────────────── */
 .stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
 .stat-card{
@@ -498,7 +561,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
 .cal-cell:active{background:var(--card2)}
 .cal-cell.cal-empty{cursor:default;pointer-events:none}
 .cal-cell.cal-today{background:rgba(168,85,247,.12);border:1.5px solid rgba(168,85,247,.4)}
-.cal-cell.cal-outside{opacity:.25;cursor:default;pointer-events:none}
+.cal-cell.cal-outside{opacity:.35}
 .cal-cell.cal-done{background:rgba(16,185,129,.08)}
 .cal-num{
   font-size:13px;font-weight:600;line-height:1;
@@ -510,7 +573,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
 .dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
 .dot-gym   {background:var(--green)}
 .dot-tan   {background:var(--gold)}
-.dot-pretан{background:var(--red)}
+.dot-pretan{background:var(--red)}
 .dot-hair  {background:var(--pink)}
 .dot-tret  {background:var(--purple)}
 .dot-done  {background:var(--green);box-shadow:0 0 4px var(--green)}
@@ -786,6 +849,32 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
           <div class="exercise-item">Rear Delt Flyes</div>
         </div>
       </div>
+
+      <!-- PR tracker -->
+      <div class="section-header" style="margin-top:20px">
+        <h2>Personal Records</h2>
+        <span class="badge badge-gold">🏆 PRs</span>
+      </div>
+      <div class="pr-grid" id="prGrid"></div>
+
+      <!-- Lift log form -->
+      <div class="lift-log-card">
+        <h3>📝 Log a Set</h3>
+        <div class="lift-sel-row">
+          <button class="lift-sel active" data-lift="squat"      onclick="selectLift('squat')">🏋️ Squat</button>
+          <button class="lift-sel"        data-lift="powerclean" onclick="selectLift('powerclean')">⚡ Power Clean</button>
+          <button class="lift-sel"        data-lift="bench"      onclick="selectLift('bench')">💪 Bench</button>
+        </div>
+        <div class="lift-inputs">
+          <input class="lift-input" type="number" id="liftWeight" placeholder="Weight (lbs)" min="0" step="2.5" inputmode="decimal">
+          <input class="lift-input" type="number" id="liftReps"   placeholder="Reps"         min="1" step="1"   inputmode="numeric">
+        </div>
+        <button class="log-submit" style="width:100%" onclick="logLift()">Log Set →</button>
+      </div>
+
+      <!-- Recent lift history -->
+      <div id="liftHistory"></div>
+
     </div><!-- /tab-gym -->
 
     <!-- PROGRESS TAB -->
@@ -905,7 +994,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
         <span class="leg-item"><span class="dot dot-gym"></span>Gym</span>
         <span class="leg-item"><span class="dot dot-tret"></span>Tret night</span>
         <span class="leg-item"><span class="dot dot-tan"></span>Tan day</span>
-        <span class="leg-item"><span class="dot dot-pretан"></span>Skip tret</span>
+        <span class="leg-item"><span class="dot dot-pretan"></span>Skip tret</span>
         <span class="leg-item"><span class="dot dot-hair"></span>Hair</span>
       </div>
 
@@ -1037,6 +1126,27 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
 
     <div class="divider"></div>
 
+    <div class="divider"></div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">💾 Export Backup</div>
+        <div class="sr-sub">Download all your data as a JSON file — save to Files or iCloud</div>
+      </div>
+      <button class="setting-btn" onclick="exportData()">Export</button>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">📂 Import Backup</div>
+        <div class="sr-sub">Restore from a previously exported JSON file</div>
+      </div>
+      <button class="setting-btn" onclick="document.getElementById('importFileInput').click()">Import</button>
+    </div>
+    <input type="file" id="importFileInput" accept=".json" style="display:none" onchange="importData(event)">
+
+    <div class="divider"></div>
+
     <div class="setting-row">
       <div>
         <div class="sr-label">Reset Today's Tasks</div>
@@ -1048,7 +1158,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
     <div class="setting-row">
       <div>
         <div class="sr-label">App Version</div>
-        <div class="sr-sub">Glow Up Tracker v1.0</div>
+        <div class="sr-sub">Glow Up Tracker v2.0 · Cookie backup active ✓</div>
       </div>
     </div>
 
@@ -1058,6 +1168,7 @@ input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.
 
 <!-- ── Toast ─────────────────────────────────────────────────────────────── -->
 <div class="toast" id="toast"></div>
+<div class="timer-done-toast" id="timerDoneToast">✅ Done! Apply tretinoin now.</div>
 
 <script>
 'use strict';
@@ -1243,13 +1354,55 @@ const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
 
 // ════════════════════════════════════════════════════════════════════════════
-// STORAGE
+// STORAGE — localStorage + cookie redundancy (survives iOS 7-day wipe)
 // ════════════════════════════════════════════════════════════════════════════
-function load(key, def) {
-  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; }
-  catch { return def; }
+
+// Cookie helpers (1-year expiry)
+function _setCookie(k, v) {
+  try {
+    const exp = new Date(Date.now() + 365 * 864e5).toUTCString();
+    document.cookie = `${k}=${encodeURIComponent(v)};expires=${exp};path=/;SameSite=Lax`;
+  } catch {}
 }
-function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+function _getCookie(k) {
+  try {
+    const m = document.cookie.match(new RegExp('(?:^|; )' + k.replace(/[.*+?^${}()|[\]\\]/g,'\\$&') + '=([^;]*)'));
+    return m ? decodeURIComponent(m[1]) : null;
+  } catch { return null; }
+}
+
+// Keys small enough to fit in a cookie (<4KB each)
+const COOKIE_KEYS = new Set(['gu_state','gu_tret','gu_tan','gu_gym','gu_period','gu_prs']);
+
+function load(key, def) {
+  try {
+    const v = localStorage.getItem(key);
+    if (v !== null) return JSON.parse(v);
+    // localStorage empty — try cookie fallback
+    const c = _getCookie('c_' + key);
+    if (c) {
+      try { localStorage.setItem(key, c); } catch {}
+      return JSON.parse(c);
+    }
+    return def;
+  } catch { return def; }
+}
+
+function save(key, val) {
+  const s = JSON.stringify(val);
+  try { localStorage.setItem(key, s); } catch {}
+  // Mirror small keys to cookies
+  if (COOKIE_KEYS.has(key)) _setCookie('c_' + key, s);
+  // For tasks: cookie stores last 60 days only (size limit)
+  if (key === 'gu_tasks') {
+    try {
+      const cutoff = addDays(todayStr(), -60);
+      const slim = {};
+      for (const [d, v] of Object.entries(val)) { if (d >= cutoff) slim[d] = v; }
+      _setCookie('c_' + key, JSON.stringify(slim));
+    } catch {}
+  }
+}
 
 function getState()    { return load('gu_state', {}); }
 function saveState(s)  { save('gu_state', s); }
@@ -1268,6 +1421,9 @@ function saveLogs(l)   { save('gu_logs', l); }
 
 function getTanning()  { return load('gu_tan', { lastTanDate: null }); }
 function saveTanning(t){ save('gu_tan', t); }
+
+function getPRs()      { return load('gu_prs', { squat:[], powerclean:[], bench:[] }); }
+function savePRs(d)    { save('gu_prs', d); }
 
 // ════════════════════════════════════════════════════════════════════════════
 // DATE HELPERS
@@ -1364,11 +1520,19 @@ function recalcStreak() {
 // TASK RENDERING
 // ════════════════════════════════════════════════════════════════════════════
 function taskHTML(t, done) {
+  const isWait10 = (t.id === 'wait-10');
+  const timerHTML = isWait10 && !done
+    ? `<div class="timer-wrap" onclick="event.stopPropagation()">
+        <button class="timer-btn" id="timerBtn" onclick="startTretTimer()">▶ Start 10:00</button>
+        <div class="timer-display" id="timerDisplay"></div>
+      </div>`
+    : '';
   return `<div class="task-item${done?' done':''}" data-id="${t.id}" onclick="toggleTask('${t.id}')">
     <span class="task-emoji">${t.emoji}</span>
     <div class="task-body">
       <div class="task-text">${t.text}</div>
       ${t.sub ? `<div class="task-sub">${t.sub}</div>` : ''}
+      ${timerHTML}
     </div>
     <div class="task-check">
       <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
@@ -1688,6 +1852,7 @@ function renderGym() {
     </div>`;
   }
   grid.innerHTML = html;
+  renderPRs();
 }
 
 function toggleGymDay(ds) {
@@ -1696,6 +1861,129 @@ function toggleGymDay(ds) {
   saveGym(gym);
   renderGym();
   showToast(gym[ds] ? '💪 Gym logged!' : 'Session removed');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TRET TIMER
+// ════════════════════════════════════════════════════════════════════════════
+let _tretTimerInterval = null;
+let _tretTimerSecs = 600;
+
+function startTretTimer() {
+  if (_tretTimerInterval) return; // already running
+  const btn  = document.getElementById('timerBtn');
+  const disp = document.getElementById('timerDisplay');
+  if (!btn || !disp) return;
+  btn.style.display = 'none';
+  _tretTimerSecs = 600;
+
+  function tick() {
+    _tretTimerSecs--;
+    if (_tretTimerSecs <= 0) {
+      clearInterval(_tretTimerInterval);
+      _tretTimerInterval = null;
+      if (disp) { disp.textContent = '✅ Done! Apply tretinoin now.'; disp.style.color = 'var(--green)'; }
+      const toast = document.getElementById('timerDoneToast');
+      if (toast) { toast.classList.add('show'); setTimeout(() => toast.classList.remove('show'), 3500); }
+      if (navigator.vibrate) navigator.vibrate([300,100,300,100,300]);
+      return;
+    }
+    const m = Math.floor(_tretTimerSecs / 60);
+    const s = _tretTimerSecs % 60;
+    if (disp) {
+      disp.textContent = `${m}:${String(s).padStart(2,'0')} remaining`;
+      disp.style.color = _tretTimerSecs < 60 ? 'var(--gold)' : 'var(--purple)';
+    }
+  }
+  tick(); // immediate first tick display
+  _tretTimerInterval = setInterval(tick, 1000);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LIFT / PR TRACKER
+// ════════════════════════════════════════════════════════════════════════════
+let _selectedLift = 'squat';
+
+const LIFTS_DEF = [
+  { key:'squat',      emoji:'🏋️', label:'Squat'       },
+  { key:'powerclean', emoji:'⚡',  label:'Power Clean' },
+  { key:'bench',      emoji:'💪',  label:'Bench'       },
+];
+
+function getLifePR(lift) {
+  const entries = getPRs()[lift] || [];
+  if (!entries.length) return null;
+  return entries.reduce((best, e) => (!best || e.weight > best.weight) ? e : best, null);
+}
+
+function selectLift(lift) {
+  _selectedLift = lift;
+  document.querySelectorAll('.lift-sel').forEach(b => {
+    b.classList.toggle('active', b.dataset.lift === lift);
+  });
+}
+
+function logLift() {
+  const wEl = document.getElementById('liftWeight');
+  const rEl = document.getElementById('liftReps');
+  const weight = parseFloat(wEl?.value);
+  const reps   = parseInt(rEl?.value);
+  if (!weight || !reps || weight <= 0 || reps <= 0) { showToast('Enter weight and reps'); return; }
+
+  const prs  = getPRs();
+  if (!prs[_selectedLift]) prs[_selectedLift] = [];
+  const prevPR = getLifePR(_selectedLift);
+  prs[_selectedLift].push({ date: todayStr(), weight, reps, unit:'lbs' });
+  savePRs(prs);
+
+  const isNewPR = !prevPR || weight > prevPR.weight;
+  showToast(isNewPR ? `🏆 NEW PR! ${weight} lbs × ${reps} reps!` : `Logged: ${weight} lbs × ${reps}`);
+  if (wEl) wEl.value = '';
+  if (rEl) rEl.value = '';
+  renderGym();
+}
+
+function renderPRs() {
+  const grid = document.getElementById('prGrid');
+  const hist = document.getElementById('liftHistory');
+  if (!grid) return;
+  const prs = getPRs();
+
+  // PR cards
+  grid.innerHTML = LIFTS_DEF.map(l => {
+    const best = getLifePR(l.key);
+    return `<div class="pr-card">
+      <div class="pr-emoji">${l.emoji}</div>
+      <div class="pr-label">${l.label}</div>
+      <div class="pr-val">${best ? `${best.weight}<span style="font-size:11px;color:var(--muted2)"> lbs</span>` : '—'}</div>
+      <div class="pr-sub">${best ? `× ${best.reps} reps<br>${formatDisplay(best.date)}` : 'No lifts yet'}</div>
+    </div>`;
+  }).join('');
+
+  // Recent history
+  if (!hist) return;
+  const all = [];
+  for (const l of LIFTS_DEF) {
+    for (const e of (prs[l.key] || [])) all.push({...e, ...l});
+  }
+  all.sort((a,b) => b.date.localeCompare(a.date) || b.weight - a.weight);
+  const recent = all.slice(0, 25);
+
+  if (!recent.length) { hist.innerHTML = ''; return; }
+  hist.innerHTML = `<div class="section-header"><h2>Recent Sets</h2></div>` +
+    recent.map(e => {
+      const pr = getLifePR(e.key);
+      const isPR = pr && e.weight >= pr.weight;
+      return `<div class="lift-entry${isPR ? ' lift-pr' : ''}">
+        <div class="le-emoji">${e.emoji}</div>
+        <div class="le-info">
+          <div class="le-name">${e.label}${isPR ? ' 🏆' : ''}</div>
+          <div class="le-date">${formatDisplay(e.date)}</div>
+        </div>
+        <div class="le-weight">${e.weight}<span class="le-unit"> lbs</span></div>
+        <div class="le-reps">× ${e.reps}</div>
+      </div>`;
+    }).join('');
 }
 
 // ════════════════════════════════════════════════════════════════════════════
@@ -2028,7 +2316,7 @@ function renderCalendar() {
     const ds  = `${_calYear}-${pad(_calMonth + 1)}-${pad(d)}`;
     const info = getDayInfo(ds);
 
-    // Period range check
+    // Period range check — dims days outside range but they stay clickable
     const hasPeriod = period.start || period.end;
     const inRange   = (!period.start || ds >= period.start) && (!period.end || ds <= period.end);
     const outside   = hasPeriod && !inRange;
@@ -2036,17 +2324,15 @@ function renderCalendar() {
     let cls = 'cal-cell';
     if (info.isToday) cls += ' cal-today';
     if (outside)      cls += ' cal-outside';
-    if (info.isDone)  cls += ' cal-done';
+    if (!outside && info.isDone) cls += ' cal-done';
 
-    // Dots
+    // Always show dots for every day
     const dots = [];
-    if (!outside) {
-      if (info.gymType)               dots.push('<span class="dot dot-gym"></span>');
-      if (info.tretNight && !info.isPreTan && !info.isTan) dots.push('<span class="dot dot-tret"></span>');
-      if (info.isTan)                 dots.push('<span class="dot dot-tan"></span>');
-      if (info.isPreTan)              dots.push('<span class="dot dot-pretан"></span>');
-      if (info.isHair)                dots.push('<span class="dot dot-hair"></span>');
-    }
+    if (info.gymType)               dots.push('<span class="dot dot-gym"></span>');
+    if (info.tretNight && !info.isPreTan && !info.isTan) dots.push('<span class="dot dot-tret"></span>');
+    if (info.isTan)                 dots.push('<span class="dot dot-tan"></span>');
+    if (info.isPreTan)              dots.push('<span class="dot dot-pretan"></span>');
+    if (info.isHair)                dots.push('<span class="dot dot-hair"></span>');
 
     html += `<div class="${cls}" data-ds="${ds}" onclick="openDaySheet('${ds}')">
       <div class="cal-num">${d}</div>
@@ -2272,6 +2558,44 @@ function confirmReset() {
   localStorage.clear();
   closeSettings();
   location.reload();
+}
+
+function exportData() {
+  const keys = ['gu_state','gu_tasks','gu_gym','gu_psl','gu_logs','gu_tan','gu_tret','gu_period','gu_prs'];
+  const bundle = { _v: 2, _exported: new Date().toISOString() };
+  for (const k of keys) {
+    try { const v = localStorage.getItem(k); if (v) bundle[k] = JSON.parse(v); } catch {}
+  }
+  const blob = new Blob([JSON.stringify(bundle, null, 2)], { type:'application/json' });
+  const url  = URL.createObjectURL(blob);
+  const a    = document.createElement('a');
+  a.href = url;
+  a.download = `glowup-backup-${todayStr()}.json`;
+  a.click();
+  URL.revokeObjectURL(url);
+  showToast('Backup exported ✓');
+}
+
+function importData(e) {
+  const file = e.target.files?.[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = (ev) => {
+    try {
+      const bundle = JSON.parse(ev.target.result);
+      if (!bundle._v) { showToast('Invalid backup file'); return; }
+      const keys = ['gu_state','gu_tasks','gu_gym','gu_psl','gu_logs','gu_tan','gu_tret','gu_period','gu_prs'];
+      for (const k of keys) {
+        if (bundle[k] !== undefined) {
+          save(k, bundle[k]);
+        }
+      }
+      showToast('Backup restored ✓ — reloading…');
+      setTimeout(() => location.reload(), 1200);
+    } catch { showToast('Failed to read backup file'); }
+  };
+  reader.readAsText(file);
+  e.target.value = ''; // reset input
 }
 
 // ════════════════════════════════════════════════════════════════════════════
