@@ -1,5 +1,5 @@
 'use strict';
-const CACHE = 'glowup-v2';
+const CACHE = 'glowup-v4';
 const SHELL = ['./index.html', './manifest.json'];
 
 // ─── Full daily notification schedule ────────────────────────────────────────
@@ -49,6 +49,20 @@ self.addEventListener('fetch', e => {
   if (url.pathname.match(/icon-(192|512)\.png$/)) {
     const size = url.pathname.includes('192') ? 192 : 512;
     e.respondWith(serveIcon(size));
+    return;
+  }
+
+  // Network-first for HTML so updates deploy immediately; cache-first for everything else
+  const isHTML = e.request.headers.get('accept')?.includes('text/html') ||
+                 url.pathname.endsWith('.html') || url.pathname === url.pathname.split('/').slice(0,-1).join('/') + '/';
+  if (isHTML) {
+    e.respondWith(
+      fetch(e.request).then(r => {
+        const clone = r.clone();
+        caches.open(CACHE).then(c => c.put(e.request, clone));
+        return r;
+      }).catch(() => caches.match(e.request).then(hit => hit || caches.match('./index.html')))
+    );
     return;
   }
 
