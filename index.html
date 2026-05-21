@@ -1,0 +1,2440 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="Glow Up">
+<meta name="theme-color" content="#0a0a14">
+<link rel="manifest" href="manifest.json">
+<title>Glow Up Tracker</title>
+<style>
+/* ── Reset & Base ─────────────────────────────────────────────────────────── */
+*,*::before,*::after{margin:0;padding:0;box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html{height:100%;background:#0a0a14}
+body{
+  font-family:-apple-system,BlinkMacSystemFont,'SF Pro Display',system-ui,sans-serif;
+  background:#0a0a14;color:#f0efff;height:100%;overflow:hidden;
+  -webkit-font-smoothing:antialiased;
+}
+input,textarea,select,button{font-family:inherit;color:inherit}
+button{cursor:pointer;border:none;background:none}
+
+/* ── Design Tokens ────────────────────────────────────────────────────────── */
+:root{
+  --bg:#0a0a14;
+  --surface:#10101e;
+  --card:#16162c;
+  --card2:#1e1e38;
+  --purple:#a855f7;
+  --purple-dim:#7c3aed;
+  --pink:#ec4899;
+  --gold:#f59e0b;
+  --green:#10b981;
+  --red:#f87171;
+  --text:#f0efff;
+  --muted:#5a5a7a;
+  --muted2:#8888aa;
+  --border:#1e1e3c;
+  --safe-t:env(safe-area-inset-top,0px);
+  --safe-b:env(safe-area-inset-bottom,0px);
+  --safe-l:env(safe-area-inset-left,0px);
+  --safe-r:env(safe-area-inset-right,0px);
+  --nav-h:64px;
+}
+
+/* ── Layout ───────────────────────────────────────────────────────────────── */
+#app{
+  display:flex;flex-direction:column;
+  height:100vh;height:100dvh;
+  position:relative;overflow:hidden;
+}
+.app-header{
+  flex-shrink:0;
+  background:var(--surface);
+  border-bottom:1px solid var(--border);
+  padding:calc(var(--safe-t) + 14px) 20px 14px;
+  display:flex;align-items:center;justify-content:space-between;
+  position:relative;z-index:10;
+}
+.app-main{
+  flex:1;overflow-y:auto;overflow-x:hidden;
+  -webkit-overflow-scrolling:touch;
+  overscroll-behavior:contain;
+  padding-bottom:calc(var(--nav-h) + var(--safe-b) + 12px);
+}
+.app-nav{
+  position:fixed;bottom:0;left:0;right:0;
+  background:var(--surface);
+  border-top:1px solid var(--border);
+  display:flex;align-items:center;
+  height:calc(var(--nav-h) + var(--safe-b));
+  padding-bottom:var(--safe-b);
+  padding-left:var(--safe-l);
+  padding-right:var(--safe-r);
+  z-index:10;
+}
+.nav-btn{
+  flex:1;display:flex;flex-direction:column;align-items:center;
+  justify-content:center;gap:3px;padding:6px 4px;
+  color:var(--muted);transition:color .15s ease;
+  font-size:9px;font-weight:600;letter-spacing:.03em;text-transform:uppercase;
+}
+.nav-btn.active{color:var(--purple)}
+.nav-btn svg{width:22px;height:22px;stroke-width:1.8}
+
+/* ── Tab panels ───────────────────────────────────────────────────────────── */
+.tab-panel{display:none;padding:16px}
+.tab-panel.active{display:block}
+
+/* ── Header elements ──────────────────────────────────────────────────────── */
+.header-left h1{font-size:18px;font-weight:700;letter-spacing:-.02em}
+.header-left h1 span{background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.header-left .date-str{font-size:12px;color:var(--muted2);margin-top:1px}
+.header-right{display:flex;align-items:center;gap:10px}
+.streak-badge{
+  display:flex;align-items:center;gap:5px;
+  background:linear-gradient(135deg,#2d1b69,#3d1a5c);
+  border:1px solid rgba(168,85,247,.3);
+  padding:6px 11px;border-radius:20px;
+}
+.streak-badge .flame{font-size:15px}
+.streak-badge .count{font-size:14px;font-weight:700;color:var(--purple)}
+.streak-badge .label{font-size:10px;color:var(--muted2)}
+.settings-btn{
+  width:34px;height:34px;border-radius:50%;
+  background:var(--card);border:1px solid var(--border);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted2);
+}
+
+/* ── Progress ring ────────────────────────────────────────────────────────── */
+.progress-ring-wrap{
+  display:flex;flex-direction:column;align-items:center;
+  gap:8px;margin:20px auto 8px;
+  position:relative;
+}
+.progress-ring{transform:rotate(-90deg)}
+.ring-bg{fill:none;stroke:var(--card2);stroke-width:8}
+.ring-fill{
+  fill:none;stroke-width:8;
+  stroke:url(#ringGrad);
+  stroke-linecap:round;
+  transition:stroke-dashoffset .5s cubic-bezier(.4,0,.2,1);
+}
+.ring-text{
+  position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);
+  text-align:center;
+}
+.ring-pct{font-size:26px;font-weight:800;letter-spacing:-.02em}
+.ring-sub{font-size:10px;color:var(--muted2);margin-top:1px}
+
+/* ── Section headers ──────────────────────────────────────────────────────── */
+.section-header{
+  display:flex;align-items:center;gap:8px;
+  margin:20px 0 10px;
+}
+.section-header h2{font-size:14px;font-weight:700;letter-spacing:.04em;text-transform:uppercase;color:var(--muted2)}
+.section-header .badge{
+  padding:2px 8px;border-radius:10px;font-size:10px;font-weight:700;
+}
+.badge-purple{background:rgba(168,85,247,.15);color:var(--purple);border:1px solid rgba(168,85,247,.2)}
+.badge-green{background:rgba(16,185,129,.15);color:var(--green);border:1px solid rgba(16,185,129,.2)}
+.badge-gold{background:rgba(245,158,11,.15);color:var(--gold);border:1px solid rgba(245,158,11,.2)}
+.badge-pink{background:rgba(236,72,153,.15);color:var(--pink);border:1px solid rgba(236,72,153,.2)}
+
+/* ── Task cards ───────────────────────────────────────────────────────────── */
+.task-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;overflow:hidden;margin-bottom:8px;
+}
+.task-item{
+  display:flex;align-items:flex-start;gap:12px;
+  padding:14px 16px;border-bottom:1px solid var(--border);
+  transition:background .12s ease;cursor:pointer;
+  user-select:none;-webkit-user-select:none;
+}
+.task-item:last-child{border-bottom:none}
+.task-item:active{background:var(--card2)}
+.task-item.done .task-text{text-decoration:line-through;color:var(--muted)}
+.task-item.done .task-icon{opacity:.5}
+.task-emoji{font-size:18px;flex-shrink:0;margin-top:1px}
+.task-body{flex:1;min-width:0}
+.task-text{font-size:14px;font-weight:500;line-height:1.35;color:var(--text)}
+.task-sub{font-size:11px;color:var(--muted2);margin-top:2px}
+.task-check{
+  flex-shrink:0;width:22px;height:22px;border-radius:50%;
+  border:2px solid var(--border);background:transparent;
+  display:flex;align-items:center;justify-content:center;
+  margin-top:1px;transition:all .15s ease;
+}
+.task-item.done .task-check{
+  background:linear-gradient(135deg,var(--purple),var(--pink));
+  border-color:transparent;
+}
+.task-check svg{width:12px;height:12px;stroke:#fff;opacity:0;transition:opacity .15s}
+.task-item.done .task-check svg{opacity:1}
+
+/* ── Completion banner ────────────────────────────────────────────────────── */
+.complete-banner{
+  background:linear-gradient(135deg,rgba(168,85,247,.15),rgba(236,72,153,.1));
+  border:1px solid rgba(168,85,247,.25);
+  border-radius:16px;padding:16px;text-align:center;
+  display:none;margin-bottom:16px;
+}
+.complete-banner.show{display:block}
+.complete-banner h3{font-size:18px;font-weight:800;margin-bottom:4px}
+.complete-banner p{font-size:13px;color:var(--muted2)}
+
+/* ── Gym tab ──────────────────────────────────────────────────────────────── */
+.week-grid{
+  display:grid;grid-template-columns:repeat(5,1fr);gap:8px;
+  margin-bottom:20px;
+}
+.day-pill{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:12px;padding:10px 6px;text-align:center;cursor:pointer;
+  transition:all .15s ease;
+}
+.day-pill:active{transform:scale(.96)}
+.day-pill.today{border-color:rgba(168,85,247,.4)}
+.day-pill.done{
+  background:linear-gradient(135deg,rgba(168,85,247,.2),rgba(236,72,153,.15));
+  border-color:var(--purple);
+}
+.day-pill.rest{opacity:.4;cursor:default}
+.day-pill .day-name{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted2);letter-spacing:.06em}
+.day-pill .day-icon{font-size:18px;margin:4px 0}
+.day-pill .day-type{font-size:8px;color:var(--muted);text-transform:uppercase;letter-spacing:.04em}
+.day-pill.done .day-name,.day-pill.done .day-type{color:var(--purple)}
+
+.workout-detail{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:12px;
+}
+.workout-detail h3{
+  font-size:15px;font-weight:700;margin-bottom:12px;
+  display:flex;align-items:center;gap:8px;
+}
+.exercise-list{display:flex;flex-direction:column;gap:6px}
+.exercise-item{
+  display:flex;align-items:center;gap:10px;
+  padding:8px 10px;background:var(--card2);border-radius:10px;
+  font-size:13px;
+}
+.exercise-item::before{content:'▸';color:var(--purple);font-size:12px}
+
+/* ── Progress tab ─────────────────────────────────────────────────────────── */
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:20px}
+.stat-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px;text-align:center;
+}
+.stat-card .stat-val{font-size:28px;font-weight:800;line-height:1}
+.stat-card .stat-label{font-size:11px;color:var(--muted2);margin-top:4px;text-transform:uppercase;letter-spacing:.04em}
+.stat-card .stat-sub{font-size:10px;color:var(--muted);margin-top:2px}
+
+.heat-row{display:flex;gap:5px;margin-bottom:20px}
+.heat-cell{
+  flex:1;aspect-ratio:1;border-radius:6px;
+  background:var(--card2);display:flex;align-items:center;
+  justify-content:center;flex-direction:column;gap:2px;
+}
+.heat-cell.done{background:linear-gradient(135deg,rgba(168,85,247,.4),rgba(236,72,153,.3));border:1px solid rgba(168,85,247,.3)}
+.heat-cell.partial{background:rgba(168,85,247,.15);border:1px solid rgba(168,85,247,.15)}
+.heat-cell .hc-day{font-size:9px;font-weight:700;text-transform:uppercase;color:var(--muted2)}
+.heat-cell.done .hc-day{color:var(--purple)}
+
+.psl-section{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.psl-section h3{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.psl-current{
+  font-size:48px;font-weight:800;text-align:center;
+  background:linear-gradient(135deg,var(--purple),var(--pink));
+  -webkit-background-clip:text;-webkit-text-fill-color:transparent;
+  margin:8px 0 4px;
+}
+.psl-label{text-align:center;font-size:11px;color:var(--muted2);margin-bottom:16px}
+.psl-slider-wrap{display:flex;align-items:center;gap:10px}
+.psl-slider{
+  flex:1;-webkit-appearance:none;appearance:none;
+  height:6px;border-radius:3px;outline:none;
+  background:linear-gradient(to right,var(--purple) var(--pct,50%),var(--card2) var(--pct,50%));
+}
+.psl-slider::-webkit-slider-thumb{
+  -webkit-appearance:none;width:22px;height:22px;border-radius:50%;
+  background:linear-gradient(135deg,var(--purple),var(--pink));
+  box-shadow:0 2px 8px rgba(168,85,247,.4);
+}
+.psl-log-btn{
+  padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;
+  margin-top:12px;width:100%;
+}
+.psl-history{margin-top:12px;display:flex;flex-direction:column;gap:6px}
+.psl-entry{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:8px 10px;background:var(--card2);border-radius:10px;
+}
+.psl-entry .pe-date{font-size:11px;color:var(--muted2)}
+.psl-entry .pe-val{font-size:16px;font-weight:700;color:var(--purple)}
+.psl-entry .pe-note{font-size:11px;color:var(--muted2);flex:1;margin:0 10px;text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+
+.tan-card{background:var(--card);border:1px solid var(--border);border-radius:16px;padding:16px;margin-bottom:16px}
+.tan-card h3{font-size:14px;font-weight:700;margin-bottom:12px;display:flex;align-items:center;gap:6px}
+.tan-dates{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px}
+.tan-date-item{background:var(--card2);border-radius:12px;padding:12px;text-align:center}
+.tan-date-item .td-label{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em;margin-bottom:4px}
+.tan-date-item .td-val{font-size:14px;font-weight:700}
+.tan-date-item .td-days{font-size:11px;color:var(--muted2);margin-top:2px}
+.tan-set-btn{
+  padding:10px;border-radius:10px;font-size:13px;font-weight:600;
+  background:linear-gradient(135deg,rgba(245,158,11,.2),rgba(245,158,11,.1));
+  color:var(--gold);border:1px solid rgba(245,158,11,.3);width:100%;
+}
+
+/* ── Log tab ──────────────────────────────────────────────────────────────── */
+.log-compose{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:16px;
+}
+.log-compose h3{font-size:14px;font-weight:700;margin-bottom:10px}
+.log-textarea{
+  width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:12px;font-size:14px;color:var(--text);
+  resize:none;min-height:90px;outline:none;
+  transition:border-color .15s;
+}
+.log-textarea:focus{border-color:rgba(168,85,247,.4)}
+.log-textarea::placeholder{color:var(--muted)}
+.log-submit{
+  margin-top:10px;width:100%;padding:11px;
+  border-radius:10px;font-size:14px;font-weight:600;
+  background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;
+}
+.log-entries{display:flex;flex-direction:column;gap:10px}
+.log-entry{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;padding:14px;
+}
+.log-entry .le-date{font-size:11px;color:var(--muted2);margin-bottom:6px;display:flex;align-items:center;gap:6px}
+.log-entry .le-text{font-size:14px;line-height:1.5;color:var(--text)}
+.log-entry .le-delete{
+  float:right;width:20px;height:20px;border-radius:50%;
+  background:rgba(248,113,113,.1);color:var(--red);
+  display:flex;align-items:center;justify-content:center;
+  font-size:12px;margin-left:8px;margin-top:-2px;
+}
+
+/* ── Settings modal ───────────────────────────────────────────────────────── */
+.modal-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:100;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+  backdrop-filter:blur(4px);
+}
+.modal-overlay.show{opacity:1;pointer-events:all}
+.modal-sheet{
+  background:var(--surface);border-top:1px solid var(--border);
+  border-radius:20px 20px 0 0;width:100%;
+  padding:20px 20px calc(var(--safe-b) + 20px);
+  max-height:80vh;overflow-y:auto;
+  transform:translateY(100%);transition:transform .25s cubic-bezier(.4,0,.2,1);
+}
+.modal-overlay.show .modal-sheet{transform:none}
+.modal-sheet h2{font-size:18px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;justify-content:space-between}
+.modal-close{
+  width:28px;height:28px;border-radius:50%;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted2);font-size:16px;
+}
+.setting-row{
+  display:flex;align-items:center;justify-content:space-between;
+  padding:14px 0;border-bottom:1px solid var(--border);
+}
+.setting-row:last-child{border-bottom:none}
+.setting-row .sr-label{font-size:14px;font-weight:500}
+.setting-row .sr-sub{font-size:12px;color:var(--muted2);margin-top:2px}
+.toggle{
+  width:48px;height:28px;background:var(--card2);border-radius:14px;
+  position:relative;cursor:pointer;transition:background .2s;border:1px solid var(--border);
+}
+.toggle.on{background:linear-gradient(135deg,var(--purple),var(--pink));border-color:transparent}
+.toggle-knob{
+  position:absolute;top:3px;left:3px;width:20px;height:20px;
+  background:#fff;border-radius:50%;transition:transform .2s;
+  box-shadow:0 1px 4px rgba(0,0,0,.3);
+}
+.toggle.on .toggle-knob{transform:translateX(20px)}
+.setting-btn{
+  padding:8px 16px;border-radius:10px;font-size:13px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);
+}
+.danger-btn{
+  width:100%;margin-top:16px;padding:12px;
+  border-radius:12px;font-size:14px;font-weight:600;
+  background:rgba(248,113,113,.1);color:var(--red);
+  border:1px solid rgba(248,113,113,.2);
+}
+
+/* ── Tanning date picker ──────────────────────────────────────────────────── */
+.tan-picker{display:none;margin-top:10px}
+.tan-picker.show{display:block}
+input[type="date"]{
+  width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:11px 12px;font-size:14px;color:var(--text);
+  outline:none;
+}
+input[type="date"]::-webkit-calendar-picker-indicator{filter:invert(1);opacity:.5}
+
+/* ── Notification toast ───────────────────────────────────────────────────── */
+.toast{
+  position:fixed;top:calc(var(--safe-t) + 70px);left:50%;transform:translateX(-50%) translateY(-20px);
+  background:var(--card2);border:1px solid var(--border);
+  padding:10px 18px;border-radius:20px;font-size:13px;font-weight:500;
+  opacity:0;pointer-events:none;transition:all .25s ease;
+  white-space:nowrap;z-index:200;max-width:90vw;text-align:center;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+
+/* ── Empty states ─────────────────────────────────────────────────────────── */
+.empty-state{
+  text-align:center;padding:40px 20px;
+  color:var(--muted2);font-size:14px;
+}
+.empty-state .es-icon{font-size:36px;margin-bottom:10px}
+
+/* ── Tanning warning card ─────────────────────────────────────────────────── */
+.warning-card{
+  background:linear-gradient(135deg,rgba(245,158,11,.12),rgba(245,158,11,.06));
+  border:1px solid rgba(245,158,11,.3);
+  border-radius:16px;padding:14px;margin-bottom:12px;
+  display:flex;align-items:flex-start;gap:10px;
+}
+.warning-card .wc-icon{font-size:22px;flex-shrink:0}
+.warning-card .wc-title{font-size:13px;font-weight:700;color:var(--gold);margin-bottom:2px}
+.warning-card .wc-body{font-size:12px;color:var(--muted2);line-height:1.4}
+
+/* ── Mewing reminder chip ─────────────────────────────────────────────────── */
+.mew-chip{
+  display:inline-flex;align-items:center;gap:6px;
+  background:rgba(168,85,247,.1);border:1px solid rgba(168,85,247,.2);
+  border-radius:20px;padding:6px 12px;font-size:12px;font-weight:600;
+  color:var(--purple);margin:0 auto 16px;display:flex;justify-content:center;
+}
+
+/* ── Tretinoin Card ───────────────────────────────────────────────────────── */
+.tret-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-top:12px;
+}
+.tret-header{
+  font-size:14px;font-weight:700;margin-bottom:10px;
+}
+.tret-phase-badge{
+  display:inline-block;padding:4px 12px;border-radius:20px;
+  font-size:12px;font-weight:700;border:1px solid;margin-bottom:12px;
+}
+.tret-grid{
+  display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:12px;
+}
+.tret-stat{
+  background:var(--card2);border-radius:10px;padding:10px;text-align:center;
+}
+.ts-val{font-size:14px;font-weight:700;margin-bottom:2px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+.ts-lab{font-size:10px;color:var(--muted2);text-transform:uppercase;letter-spacing:.04em}
+.tret-tonight{
+  font-size:13px;font-weight:600;padding:8px 0;
+}
+.tret-method{
+  font-size:12px;color:var(--muted2);line-height:1.5;
+  background:var(--card2);border-radius:10px;padding:10px;margin-bottom:10px;
+}
+.tret-advance{
+  font-size:12px;color:var(--muted2);margin-bottom:10px;line-height:1.5;
+}
+.tret-irritation{
+  font-size:12px;color:var(--muted2);margin-bottom:8px;
+}
+.tret-irritation summary{
+  cursor:pointer;font-weight:600;color:var(--red);padding:6px 0;
+  list-style:none;display:flex;align-items:center;gap:6px;
+}
+.tret-irritation summary::before{content:'▶';font-size:9px;transition:transform .2s}
+.tret-irritation[open] summary::before{transform:rotate(90deg)}
+.tret-btn{
+  width:100%;padding:10px;border-radius:10px;font-size:13px;font-weight:600;
+  background:rgba(168,85,247,.12);color:var(--purple);
+  border:1px solid rgba(168,85,247,.25);
+}
+.tret-btn-sm{
+  padding:7px 12px;border-radius:10px;font-size:12px;font-weight:600;
+  background:var(--card2);border:1px solid var(--border);color:var(--text2);
+}
+
+/* ── Calendar grid ────────────────────────────────────────────────────────── */
+.cal-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px}
+.cal-month-label{font-size:17px;font-weight:800;letter-spacing:-.02em}
+.cal-arrow{
+  width:36px;height:36px;border-radius:50%;border:1px solid var(--border);
+  background:var(--card);display:flex;align-items:center;justify-content:center;
+  color:var(--muted2);font-size:18px;line-height:1;
+}
+.cal-dow-row{
+  display:grid;grid-template-columns:repeat(7,1fr);
+  margin-bottom:4px;
+}
+.cal-dow{
+  text-align:center;font-size:10px;font-weight:700;text-transform:uppercase;
+  color:var(--muted);letter-spacing:.04em;padding:4px 0;
+}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:3px}
+.cal-cell{
+  aspect-ratio:1;border-radius:10px;display:flex;flex-direction:column;
+  align-items:center;justify-content:flex-start;padding:5px 2px 3px;
+  cursor:pointer;position:relative;transition:background .1s;
+  overflow:hidden;min-height:44px;
+}
+.cal-cell:active{background:var(--card2)}
+.cal-cell.cal-empty{cursor:default;pointer-events:none}
+.cal-cell.cal-today{background:rgba(168,85,247,.12);border:1.5px solid rgba(168,85,247,.4)}
+.cal-cell.cal-outside{opacity:.25;cursor:default;pointer-events:none}
+.cal-cell.cal-done{background:rgba(16,185,129,.08)}
+.cal-num{
+  font-size:13px;font-weight:600;line-height:1;
+  color:var(--text);margin-bottom:3px;
+}
+.cal-cell.cal-today .cal-num{color:var(--purple);font-weight:800}
+.cal-cell.cal-done .cal-num{color:var(--green)}
+.cal-dots{display:flex;gap:2px;flex-wrap:wrap;justify-content:center;max-width:28px}
+.dot{width:5px;height:5px;border-radius:50%;flex-shrink:0}
+.dot-gym   {background:var(--green)}
+.dot-tan   {background:var(--gold)}
+.dot-pretан{background:var(--red)}
+.dot-hair  {background:var(--pink)}
+.dot-tret  {background:var(--purple)}
+.dot-done  {background:var(--green);box-shadow:0 0 4px var(--green)}
+
+/* Legend */
+.cal-legend{
+  display:flex;gap:12px;flex-wrap:wrap;
+  margin:12px 0 20px;
+  font-size:11px;color:var(--muted2);
+}
+.leg-item{display:flex;align-items:center;gap:5px}
+
+/* Period picker card */
+.period-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:16px;padding:16px;margin-bottom:16px;
+}
+.period-card h3{font-size:14px;font-weight:700;margin-bottom:12px}
+.period-row{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-bottom:12px}
+.period-lbl{font-size:10px;font-weight:700;text-transform:uppercase;letter-spacing:.04em;color:var(--muted2);margin-bottom:4px}
+.period-input{
+  width:100%;background:var(--card2);border:1px solid var(--border);
+  border-radius:10px;padding:10px 12px;font-size:13px;color:var(--text);outline:none;
+}
+.period-input:focus{border-color:rgba(168,85,247,.4)}
+.period-actions{display:flex;gap:8px}
+.period-btn{
+  flex:1;padding:10px;border-radius:10px;font-size:13px;font-weight:600;text-align:center;
+}
+.period-btn-apply{
+  background:linear-gradient(135deg,var(--purple),var(--pink));color:#fff;
+}
+.period-btn-view{
+  background:var(--card2);border:1px solid var(--border);color:var(--text);
+}
+
+/* Full schedule list */
+#schedListWrap{margin-top:4px}
+.sched-day-card{
+  background:var(--card);border:1px solid var(--border);
+  border-radius:14px;margin-bottom:8px;overflow:hidden;
+}
+.sdc-head{
+  padding:12px 14px;display:flex;align-items:center;justify-content:space-between;
+  cursor:pointer;user-select:none;
+}
+.sdc-head:active{background:var(--card2)}
+.sdc-date{font-size:14px;font-weight:700}
+.sdc-pills{display:flex;gap:5px;flex-shrink:0}
+.sdc-pill{
+  font-size:9px;font-weight:700;padding:2px 7px;border-radius:10px;letter-spacing:.03em;
+}
+.pill-gym  {background:rgba(16,185,129,.15);color:var(--green)}
+.pill-tan  {background:rgba(245,158,11,.15);color:var(--gold)}
+.pill-tret {background:rgba(168,85,247,.15);color:var(--purple)}
+.pill-skip {background:rgba(248,113,113,.15);color:var(--red)}
+.pill-hair {background:rgba(236,72,153,.15);color:var(--pink)}
+.pill-rest {background:rgba(90,90,122,.15);color:var(--muted2)}
+.sdc-chevron{font-size:12px;color:var(--muted);transition:transform .2s;flex-shrink:0;margin-left:6px}
+.sdc-chevron.open{transform:rotate(180deg)}
+.sdc-body{display:none;padding:0 14px 12px}
+.sdc-body.open{display:block}
+.sched-row{
+  display:flex;align-items:flex-start;gap:8px;
+  padding:7px 0;border-bottom:1px solid rgba(255,255,255,.04);
+}
+.sched-row:last-child{border-bottom:none}
+.sr-time{font-size:11px;font-weight:700;color:var(--purple);min-width:46px;flex-shrink:0;padding-top:1px}
+.sr-emoji{font-size:15px;flex-shrink:0;line-height:1.2}
+.sr-text{font-size:12px;color:var(--text);font-weight:500}
+.sr-sub{font-size:11px;color:var(--muted2);margin-top:1px;line-height:1.35}
+
+/* Day detail bottom sheet */
+.day-overlay{
+  position:fixed;inset:0;background:rgba(0,0,0,.7);
+  z-index:200;display:flex;align-items:flex-end;
+  opacity:0;pointer-events:none;transition:opacity .2s;
+  backdrop-filter:blur(6px);-webkit-backdrop-filter:blur(6px);
+}
+.day-overlay.show{opacity:1;pointer-events:all}
+.day-sheet{
+  background:var(--surface);border-radius:20px 20px 0 0;
+  border-top:1px solid var(--border);
+  width:100%;max-height:86vh;overflow-y:auto;
+  padding:20px 20px calc(var(--safe-b) + 24px);
+  transform:translateY(100%);transition:transform .28s cubic-bezier(.4,0,.2,1);
+}
+.day-overlay.show .day-sheet{transform:none}
+.day-sheet-top{
+  display:flex;align-items:flex-start;justify-content:space-between;
+  margin-bottom:14px;
+}
+.day-sheet-title{font-size:18px;font-weight:800;letter-spacing:-.02em}
+.day-sheet-sub{font-size:12px;color:var(--muted2);margin-top:3px}
+.day-sheet-close{
+  width:28px;height:28px;border-radius:50%;background:var(--card2);
+  display:flex;align-items:center;justify-content:center;
+  color:var(--muted2);font-size:14px;flex-shrink:0;
+}
+.day-pills{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:16px}
+.ds-group{margin-bottom:14px}
+.ds-group-lbl{
+  font-size:10px;font-weight:800;text-transform:uppercase;letter-spacing:.06em;
+  color:var(--muted2);margin-bottom:7px;
+}
+.ds-item{
+  display:flex;align-items:flex-start;gap:10px;
+  padding:9px 12px;background:var(--card);border:1px solid var(--border);
+  border-radius:10px;margin-bottom:4px;
+}
+.ds-item.ds-done{opacity:.5}
+.ds-item.ds-done .ds-text{text-decoration:line-through}
+.ds-time{font-size:11px;font-weight:700;color:var(--purple);min-width:46px;flex-shrink:0;margin-top:1px}
+.ds-emoji{font-size:17px;flex-shrink:0}
+.ds-right{flex:1}
+.ds-text{font-size:13px;font-weight:500;line-height:1.3}
+.ds-sub{font-size:11px;color:var(--muted2);margin-top:2px;line-height:1.4}
+.ds-tick{
+  width:18px;height:18px;border-radius:50%;border:1.5px solid var(--border);
+  flex-shrink:0;margin-top:2px;display:flex;align-items:center;justify-content:center;
+  font-size:9px;font-weight:700;color:#fff;
+}
+.ds-item.ds-done .ds-tick{background:var(--green);border-color:var(--green)}
+.ds-item.ds-done .ds-tick::after{content:'✓'}
+
+/* ── Utility ──────────────────────────────────────────────────────────────── */
+.gradient-text{background:linear-gradient(135deg,var(--purple),var(--pink));-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+.divider{height:1px;background:var(--border);margin:16px 0}
+</style>
+</head>
+<body>
+<div id="app">
+
+  <!-- ── Header ─────────────────────────────────────────────────────────── -->
+  <header class="app-header">
+    <div class="header-left">
+      <h1>✨ <span>Glow Up</span></h1>
+      <div class="date-str" id="headerDate"></div>
+    </div>
+    <div class="header-right">
+      <div class="streak-badge">
+        <span class="flame">🔥</span>
+        <span class="count" id="streakCount">0</span>
+        <span class="label">day streak</span>
+      </div>
+      <button class="settings-btn" onclick="openSettings()" aria-label="Settings">
+        <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" width="18" height="18">
+          <path stroke-linecap="round" stroke-linejoin="round" d="M9.594 3.94c.09-.542.56-.94 1.11-.94h2.593c.55 0 1.02.398 1.11.94l.213 1.281c.063.374.313.686.645.87.074.04.147.083.22.127.325.196.72.257 1.075.124l1.217-.456a1.125 1.125 0 0 1 1.37.49l1.296 2.247a1.125 1.125 0 0 1-.26 1.431l-1.003.827c-.293.241-.438.613-.43.992a7.723 7.723 0 0 1 0 .255c-.008.378.137.75.43.991l1.004.827c.424.35.534.955.26 1.43l-1.298 2.247a1.125 1.125 0 0 1-1.369.491l-1.217-.456c-.355-.133-.75-.072-1.076.124a6.47 6.47 0 0 1-.22.128c-.331.183-.581.495-.644.869l-.213 1.281c-.09.543-.56.94-1.11.94h-2.594c-.55 0-1.019-.398-1.11-.94l-.213-1.281c-.062-.374-.312-.686-.644-.87a6.52 6.52 0 0 1-.22-.127c-.325-.196-.72-.257-1.076-.124l-1.217.456a1.125 1.125 0 0 1-1.369-.49l-1.297-2.247a1.125 1.125 0 0 1 .26-1.431l1.004-.827c.292-.24.437-.613.43-.991a6.932 6.932 0 0 1 0-.255c.007-.38-.138-.751-.43-.992l-1.004-.827a1.125 1.125 0 0 1-.26-1.43l1.297-2.247a1.125 1.125 0 0 1 1.37-.491l1.216.456c.356.133.751.072 1.076-.124.072-.044.146-.086.22-.128.332-.183.582-.495.644-.869l.214-1.28Z"/>
+          <path stroke-linecap="round" stroke-linejoin="round" d="M15 12a3 3 0 1 1-6 0 3 3 0 0 1 6 0Z"/>
+        </svg>
+      </button>
+    </div>
+  </header>
+
+  <!-- ── Main content ────────────────────────────────────────────────────── -->
+  <main class="app-main">
+
+    <!-- TODAY TAB -->
+    <div id="tab-today" class="tab-panel active">
+      <!-- Progress ring -->
+      <div class="progress-ring-wrap">
+        <svg class="progress-ring" width="130" height="130" viewBox="0 0 130 130">
+          <defs>
+            <linearGradient id="ringGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+              <stop offset="0%" stop-color="#a855f7"/>
+              <stop offset="100%" stop-color="#ec4899"/>
+            </linearGradient>
+          </defs>
+          <circle class="ring-bg" cx="65" cy="65" r="56"/>
+          <circle class="ring-fill" cx="65" cy="65" r="56" id="ringFill"
+            stroke-dasharray="351.86" stroke-dashoffset="351.86"/>
+        </svg>
+        <div class="ring-text">
+          <div class="ring-pct gradient-text" id="ringPct">0%</div>
+          <div class="ring-sub" id="ringLabel">tasks done</div>
+        </div>
+      </div>
+
+      <div class="mew-chip">👅 Mew all day — tongue on palate!</div>
+
+      <!-- Complete banner -->
+      <div class="complete-banner" id="completeBanner">
+        <h3>✨ Routine Complete!</h3>
+        <p>You're glowing. Streak updated!</p>
+      </div>
+
+      <!-- Warnings (tanning, etc.) -->
+      <div id="warningArea"></div>
+
+      <!-- Morning routine -->
+      <div class="section-header">
+        <h2>Morning</h2>
+        <span class="badge badge-purple" id="morningBadge">0/6</span>
+      </div>
+      <div class="task-card" id="morningTasks"></div>
+
+      <!-- Night routine -->
+      <div class="section-header">
+        <h2>Night</h2>
+        <span class="badge badge-purple" id="nightBadge">0/6</span>
+      </div>
+      <div class="task-card" id="nightTasks"></div>
+      <!-- Tretinoin phase status card -->
+      <div id="tretStatusCard"></div>
+
+      <!-- Gym section (Mon/Tue/Thu/Fri) -->
+      <div id="gymSection" style="display:none">
+        <div class="section-header">
+          <h2>Gym</h2>
+          <span class="badge badge-green" id="gymBadge"></span>
+        </div>
+        <div class="task-card" id="gymTasks"></div>
+      </div>
+
+      <!-- Wednesday hair -->
+      <div id="hairSection" style="display:none">
+        <div class="section-header">
+          <h2>Hair</h2>
+          <span class="badge badge-pink">Weekly</span>
+        </div>
+        <div class="task-card" id="hairTasks"></div>
+      </div>
+
+      <!-- Tanning day tasks -->
+      <div id="tanSection" style="display:none">
+        <div class="section-header">
+          <h2>Tanning</h2>
+          <span class="badge badge-gold">Today</span>
+        </div>
+        <div class="task-card" id="tanTasks"></div>
+      </div>
+
+      <!-- Mastic gum reminder -->
+      <div class="section-header">
+        <h2>Mastic Gum</h2>
+        <span class="badge badge-purple">×2 daily</span>
+      </div>
+      <div class="task-card" id="gumTasks"></div>
+
+    </div><!-- /tab-today -->
+
+    <!-- GYM TAB -->
+    <div id="tab-gym" class="tab-panel">
+      <div class="section-header" style="margin-top:4px">
+        <h2>This Week</h2>
+      </div>
+      <div class="week-grid" id="weekGrid"></div>
+
+      <div class="section-header">
+        <h2>Workouts</h2>
+      </div>
+
+      <div class="workout-detail">
+        <h3>💪 Push Day <span style="font-size:11px;color:var(--muted2);font-weight:400">Mon + Thu</span></h3>
+        <div class="exercise-list">
+          <div class="exercise-item">Bench Press</div>
+          <div class="exercise-item">Overhead Press</div>
+          <div class="exercise-item">Lateral Raises</div>
+          <div class="exercise-item">Face Pulls</div>
+          <div class="exercise-item">Neck Curls</div>
+          <div class="exercise-item">Lateral Neck Raises</div>
+        </div>
+      </div>
+
+      <div class="workout-detail">
+        <h3>🏋️ Pull Day <span style="font-size:11px;color:var(--muted2);font-weight:400">Tue + Fri</span></h3>
+        <div class="exercise-list">
+          <div class="exercise-item">Deadlift</div>
+          <div class="exercise-item">Squats</div>
+          <div class="exercise-item">Rows</div>
+          <div class="exercise-item">Pull-ups</div>
+          <div class="exercise-item">Shrugs</div>
+          <div class="exercise-item">Rear Delt Flyes</div>
+        </div>
+      </div>
+    </div><!-- /tab-gym -->
+
+    <!-- PROGRESS TAB -->
+    <div id="tab-progress" class="tab-panel">
+      <div class="stat-grid">
+        <div class="stat-card">
+          <div class="stat-val gradient-text" id="p-streak">0</div>
+          <div class="stat-label">Current Streak</div>
+          <div class="stat-sub" id="p-streak-sub">days in a row</div>
+        </div>
+        <div class="stat-card">
+          <div class="stat-val gradient-text" id="p-longest">0</div>
+          <div class="stat-label">Longest Streak</div>
+          <div class="stat-sub">personal best</div>
+        </div>
+      </div>
+
+      <!-- 7-day heatmap -->
+      <div class="section-header">
+        <h2>Last 7 Days</h2>
+      </div>
+      <div class="heat-row" id="heatRow"></div>
+
+      <!-- PSL tracker -->
+      <div class="section-header">
+        <h2>PSL Rating</h2>
+        <span class="badge badge-purple">Weekly</span>
+      </div>
+      <div class="psl-section">
+        <h3>🪞 Appearance Rating</h3>
+        <div class="psl-current" id="pslCurrent">—</div>
+        <div class="psl-label">/ 10 · tap slider to set today's rating</div>
+        <div class="psl-slider-wrap">
+          <span style="font-size:12px;color:var(--muted)">1</span>
+          <input type="range" class="psl-slider" id="pslSlider" min="1" max="10" step="0.5" value="7">
+          <span style="font-size:12px;color:var(--muted)">10</span>
+        </div>
+        <input type="text" class="log-textarea" id="pslNote" placeholder="Optional note (skin, energy, gains...)" style="margin-top:10px;min-height:54px">
+        <button class="psl-log-btn" onclick="logPSL()">Log Rating ✨</button>
+        <div class="psl-history" id="pslHistory"></div>
+      </div>
+
+      <!-- Tanning tracker -->
+      <div class="section-header">
+        <h2>Tanning Schedule</h2>
+      </div>
+      <div class="tan-card">
+        <h3>🌞 Biweekly Tanning</h3>
+        <div class="tan-dates">
+          <div class="tan-date-item">
+            <div class="td-label">Last Tan</div>
+            <div class="td-val" id="lastTanDisplay">Not set</div>
+            <div class="td-days" id="lastTanDays"></div>
+          </div>
+          <div class="tan-date-item">
+            <div class="td-label">Next Tan</div>
+            <div class="td-val" id="nextTanDisplay">—</div>
+            <div class="td-days" id="nextTanDays"></div>
+          </div>
+        </div>
+        <button class="tan-set-btn" onclick="toggleTanPicker()">📅 Set Last Tan Date</button>
+        <div class="tan-picker" id="tanPicker">
+          <input type="date" id="tanDateInput" style="margin-top:10px">
+          <button class="log-submit" style="margin-top:8px" onclick="saveTanDate()">Save</button>
+        </div>
+        <div style="margin-top:10px;font-size:11px;color:var(--muted2)">
+          ⚠️ Skip tretinoin the night before AND night after each tanning session.
+        </div>
+      </div>
+    </div><!-- /tab-progress -->
+
+    <!-- CALENDAR TAB -->
+    <div id="tab-calendar" class="tab-panel">
+
+      <!-- Routine period selector -->
+      <div class="period-card">
+        <h3>📆 Routine Period</h3>
+        <p style="font-size:12px;color:var(--muted2);margin-bottom:12px;line-height:1.5">
+          Set a start and end date to see what's scheduled each day and generate a full routine plan for that window.
+        </p>
+        <div class="period-row">
+          <div>
+            <div class="period-lbl">Start date</div>
+            <input type="date" class="period-input" id="periodStart">
+          </div>
+          <div>
+            <div class="period-lbl">End date</div>
+            <input type="date" class="period-input" id="periodEnd">
+          </div>
+        </div>
+        <div class="period-actions">
+          <button class="period-btn period-btn-apply" onclick="applyRoutinePeriod()">Apply to calendar</button>
+          <button class="period-btn period-btn-view"  onclick="viewFullSchedule()">View schedule →</button>
+        </div>
+      </div>
+
+      <!-- Month navigation -->
+      <div class="cal-header">
+        <button class="cal-arrow" onclick="calPrev()">‹</button>
+        <div class="cal-month-label" id="calMonthLabel">—</div>
+        <button class="cal-arrow" onclick="calNext()">›</button>
+      </div>
+
+      <!-- Day-of-week headers -->
+      <div class="cal-dow-row">
+        <div class="cal-dow">S</div><div class="cal-dow">M</div>
+        <div class="cal-dow">T</div><div class="cal-dow">W</div>
+        <div class="cal-dow">T</div><div class="cal-dow">F</div>
+        <div class="cal-dow">S</div>
+      </div>
+
+      <!-- Calendar grid (populated by JS) -->
+      <div class="cal-grid" id="calGrid"></div>
+
+      <!-- Legend -->
+      <div class="cal-legend">
+        <span class="leg-item"><span class="dot dot-gym"></span>Gym</span>
+        <span class="leg-item"><span class="dot dot-tret"></span>Tret night</span>
+        <span class="leg-item"><span class="dot dot-tan"></span>Tan day</span>
+        <span class="leg-item"><span class="dot dot-pretан"></span>Skip tret</span>
+        <span class="leg-item"><span class="dot dot-hair"></span>Hair</span>
+      </div>
+
+      <!-- Full schedule list (shown when user taps "View schedule") -->
+      <div id="schedListWrap" style="display:none">
+        <div class="section-header">
+          <h2>Full Schedule</h2>
+          <button onclick="hideSchedList()" style="font-size:12px;color:var(--muted2);padding:4px 8px;background:var(--card2);border-radius:8px;border:1px solid var(--border)">✕ Close</button>
+        </div>
+        <div id="schedList"></div>
+      </div>
+    </div><!-- /tab-calendar -->
+
+    <!-- LOG TAB -->
+    <div id="tab-log" class="tab-panel">
+      <div class="log-compose">
+        <h3>📝 Weekly Progress Note</h3>
+        <textarea class="log-textarea" id="logInput" placeholder="How's the skin? Hair? Gym gains? Any changes noticed this week..."></textarea>
+        <button class="log-submit" onclick="submitLog()">Save Note</button>
+      </div>
+      <div class="section-header">
+        <h2>History</h2>
+      </div>
+      <div class="log-entries" id="logEntries"></div>
+    </div><!-- /tab-log -->
+
+  </main><!-- /app-main -->
+
+  <!-- ── Bottom Navigation ────────────────────────────────────────────────── -->
+  <nav class="app-nav">
+    <button class="nav-btn active" id="nav-today" onclick="switchTab('today')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="m2.25 12 8.954-8.955c.44-.439 1.152-.439 1.591 0L21.75 12M4.5 9.75v10.125c0 .621.504 1.125 1.125 1.125H9.75v-4.875c0-.621.504-1.125 1.125-1.125h2.25c.621 0 1.125.504 1.125 1.125V21h4.125c.621 0 1.125-.504 1.125-1.125V9.75M8.25 21h8.25"/></svg>
+      Today
+    </button>
+    <button class="nav-btn" id="nav-gym" onclick="switchTab('gym')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M3.75 13.5l10.5-11.25L12 10.5h8.25L9.75 21.75 12 13.5H3.75z"/></svg>
+      Gym
+    </button>
+    <button class="nav-btn" id="nav-progress" onclick="switchTab('progress')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M2.25 18 9 11.25l4.306 4.306a11.95 11.95 0 0 1 5.814-5.518l2.74-1.22m0 0-5.94-2.281m5.94 2.28-2.28 5.941"/></svg>
+      Progress
+    </button>
+    <button class="nav-btn" id="nav-log" onclick="switchTab('log')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M16.862 4.487l1.687-1.688a1.875 1.875 0 1 1 2.652 2.652L10.582 16.07a4.5 4.5 0 0 1-1.897 1.13L6 18l.8-2.685a4.5 4.5 0 0 1 1.13-1.897l8.932-8.931Zm0 0L19.5 7.125M18 14v4.75A2.25 2.25 0 0 1 15.75 21H5.25A2.25 2.25 0 0 1 3 18.75V8.25A2.25 2.25 0 0 1 5.25 6H10"/></svg>
+      Log
+    </button>
+    <button class="nav-btn" id="nav-calendar" onclick="switchTab('calendar')">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 0 1 2.25-2.25h13.5A2.25 2.25 0 0 1 21 7.5v11.25m-18 0A2.25 2.25 0 0 0 5.25 21h13.5A2.25 2.25 0 0 0 21 18.75m-18 0v-7.5A2.25 2.25 0 0 1 5.25 9h13.5A2.25 2.25 0 0 1 21 11.25v7.5m-9-6h.008v.008H12v-.008ZM12 15h.008v.008H12V15Zm0 2.25h.008v.008H12v-.008ZM9.75 15h.008v.008H9.75V15Zm0 2.25h.008v.008H9.75v-.008ZM7.5 15h.008v.008H7.5V15Zm0 2.25h.008v.008H7.5v-.008Zm6.75-4.5h.008v.008h-.008v-.008Zm0 2.25h.008v.008h-.008V15Zm0 2.25h.008v.008h-.008v-.008Zm2.25-4.5h.008v.008H16.5v-.008Zm0 2.25h.008v.008H16.5V15Z"/></svg>
+      Calendar
+    </button>
+  </nav>
+
+</div><!-- /app -->
+
+<!-- ── Day Detail Sheet ───────────────────────────────────────────────────── -->
+<div class="day-overlay" id="dayOverlay" onclick="closeDayOverlay(event)">
+  <div class="day-sheet">
+    <div class="day-sheet-top">
+      <div>
+        <div class="day-sheet-title" id="daySheetTitle">—</div>
+        <div class="day-sheet-sub"  id="daySheetSub">—</div>
+      </div>
+      <button class="day-sheet-close" onclick="closeDaySheet()">✕</button>
+    </div>
+    <div class="day-pills" id="daySheetPills"></div>
+    <div id="daySheetContent"></div>
+  </div>
+</div>
+
+<!-- ── Settings Modal ────────────────────────────────────────────────────── -->
+<div class="modal-overlay" id="settingsModal" onclick="closeSettingsOutside(event)">
+  <div class="modal-sheet">
+    <h2>
+      Settings ⚙️
+      <button class="modal-close" onclick="closeSettings()">✕</button>
+    </h2>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">Push Notifications</div>
+        <div class="sr-sub">Reminders for your routine</div>
+      </div>
+      <div class="toggle" id="notifToggle" onclick="toggleNotifications()">
+        <div class="toggle-knob"></div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">Notification Status</div>
+        <div class="sr-sub" id="notifStatus">Tap toggle to enable</div>
+      </div>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">iOS Push Note</div>
+        <div class="sr-sub">Notifications fire while app is open.<br>Add to Home Screen for best results.</div>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <!-- Tretinoin start date -->
+    <div id="tretSettingsSection">
+      <div class="setting-row">
+        <div>
+          <div class="sr-label">💊 Tretinoin Start Date</div>
+          <div class="sr-sub">When did you first apply tretinoin? Used to calculate your current phase automatically.</div>
+        </div>
+      </div>
+      <div style="padding:0 0 12px">
+        <input type="date" id="tretStartInput" style="width:100%;background:var(--card2);border:1px solid var(--border);border-radius:10px;padding:11px 12px;font-size:14px;color:var(--text);outline:none">
+        <button class="log-submit" style="margin-top:8px;width:100%" onclick="saveTretStartDate()">Save Start Date</button>
+      </div>
+      <div class="setting-row">
+        <div>
+          <div class="sr-label">Manual Phase Override</div>
+          <div class="sr-sub">Override auto-calculated phase if you advanced early or went back due to irritation.</div>
+        </div>
+      </div>
+      <div style="display:flex;gap:8px;padding-bottom:12px;flex-wrap:wrap">
+        <button class="tret-btn-sm" onclick="setManualTretPhase(1)">Phase 1</button>
+        <button class="tret-btn-sm" onclick="setManualTretPhase(2)">Phase 2</button>
+        <button class="tret-btn-sm" onclick="setManualTretPhase(3)">Phase 3</button>
+        <button class="tret-btn-sm" onclick="setManualTretPhase(null)">Auto</button>
+      </div>
+    </div>
+
+    <div class="divider"></div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">Reset Today's Tasks</div>
+        <div class="sr-sub">Uncheck all of today's checkboxes</div>
+      </div>
+      <button class="setting-btn" onclick="resetToday()">Reset</button>
+    </div>
+
+    <div class="setting-row">
+      <div>
+        <div class="sr-label">App Version</div>
+        <div class="sr-sub">Glow Up Tracker v1.0</div>
+      </div>
+    </div>
+
+    <button class="danger-btn" onclick="confirmReset()">🗑️ Reset ALL Data</button>
+  </div>
+</div>
+
+<!-- ── Toast ─────────────────────────────────────────────────────────────── -->
+<div class="toast" id="toast"></div>
+
+<script>
+'use strict';
+// ════════════════════════════════════════════════════════════════════════════
+// CONSTANTS
+// ════════════════════════════════════════════════════════════════════════════
+const MORNING_TASKS = [
+  { id:'wash-am',   emoji:'🧼', text:'Wash face',            sub:'Soon Jung Cleanser' },
+  { id:'caffeine',  emoji:'❄️', text:'Caffeine Solution',    sub:'Apply under eyes — use it COLD!' },
+  { id:'volufiline',emoji:'💧', text:'Volufiline + SKIN1004',sub:'Mix Volufiline into moisturizer, then apply' },
+  { id:'spf',       emoji:'☀️', text:'Beauty of Joseon SPF', sub:'Wait 2-3 mins after moisturizer first' },
+  { id:'gum-am',    emoji:'🦷', text:'Mastic gum — morning', sub:'20 chews LEFT side · 10 chews RIGHT side' },
+  { id:'mew-am',    emoji:'👅', text:'Mew',                  sub:'Tongue on palate, lips sealed — all day!' },
+];
+
+// Night routine — split into 3 parts so tret steps are conditionally included
+const NIGHT_BASE = [
+  { id:'wash-pm',      emoji:'🧼', text:'Wash face',                  sub:'Soon Jung Cleanser — gentle, no scrubbing' },
+  { id:'moist-buffer', emoji:'💧', text:'Moisturize — bottom layer',  sub:'SKIN1004 first · this buffers tretinoin irritation (sandwich step 1)' },
+];
+const NIGHT_TRET = [
+  { id:'wait-10',      emoji:'⏱️', text:'Wait 10 minutes',            sub:'Moisturizer must absorb fully before applying tret' },
+  { id:'tret',         emoji:'💊', text:'Apply Tretinoin',             sub:'Pea-sized amount for your WHOLE face · spread thin · avoid ALL corners (eyes/nose/mouth)' },
+  { id:'wait-tret',    emoji:'⏱️', text:'Wait a few minutes',         sub:'Let tretinoin absorb before topping with moisturizer' },
+  { id:'moist-top',    emoji:'💧', text:'Moisturize — top layer',     sub:'SKIN1004 again · sandwich complete 🥪 · reduces irritation significantly' },
+];
+const NIGHT_END = [
+
+  { id:'pillow',       emoji:'😴', text:'Satin pillowcase',            sub:'Alternate sides — reduces jaw compression from side sleeping' },
+];
+// Convenience alias used elsewhere (complete set for streak/progress calc)
+const NIGHT_TASKS = [...NIGHT_BASE, ...NIGHT_TRET, ...NIGHT_END];
+
+const GUM_TASKS = [
+  { id:'gum-midday',emoji:'🦷', text:'Midday gum session',   sub:'20 chews LEFT · 10 chews RIGHT · lead with left!' },
+  { id:'gum-eve',   emoji:'🦷', text:'Evening gum session',  sub:'20 chews LEFT · 10 chews RIGHT · lead with left!' },
+];
+
+const GYM_TASKS = [
+  { id:'gym-done', emoji:'🏋️', text:'Hit the gym today', sub:'Log your session as complete' },
+];
+
+const HAIR_TASKS = [
+  { id:'deep-cond', emoji:'💇', text:'Deep condition', sub:'Aussie 3 Minute Miracle — in the shower tonight' },
+];
+
+const TAN_TASKS = [
+  { id:'tan-bed',       emoji:'🌞', text:'Tanning bed session', sub:'MAX 5 minutes — no more!' },
+  { id:'moist-after-tan',emoji:'💧', text:'Moisturize after tanning', sub:'Apply immediately after your session' },
+];
+
+const PRE_TAN_TASKS = [
+  { id:'skip-tret', emoji:'⚠️', text:'SKIP tretinoin tonight', sub:'Tanning day tomorrow — no tret tonight AND tomorrow night!' },
+];
+
+// ─── Tretinoin Protocol ───────────────────────────────────────────────────────
+// Source: moisturizer sandwich method
+const TRET_PHASES = [
+  {
+    id: 1,
+    weeks: '1–2',
+    label: 'Phase 1 — 2×/week',
+    appliedDays: [1, 4], // Mon (1) + Thu (4)  [0=Sun]
+    freq: null,          // day-of-week based, not interval
+    tagline: 'Monday + Thursday only',
+    desc:  'Apply on Monday and Thursday nights only. This eases your skin into tretinoin. Use the moisturizer sandwich both nights.',
+    advance: 'Apply consistently for 2 weeks. If little/no irritation, move to Phase 2.',
+  },
+  {
+    id: 2,
+    weeks: '3–4',
+    label: 'Phase 2 — Every other night',
+    appliedDays: null,
+    freq: 2,             // every 2 days based on last application
+    tagline: 'Every other day',
+    desc:  'Increase to every other night IF your skin handled Phase 1 well. If still irritated, stay on Phase 1.',
+    advance: 'Complete 2 weeks with minimal irritation, then move to Phase 3.',
+  },
+  {
+    id: 3,
+    weeks: '5–8',
+    label: 'Phase 3 — Nightly',
+    appliedDays: null,
+    freq: 1,             // every night
+    tagline: 'Nightly use',
+    desc:  'Nightly application — only if there is minimal irritation and absolutely no stinging or burning on Phase 2.',
+    advance: 'This is the maintenance phase. Results compound over months. Stay here.',
+  },
+];
+
+const TRET_IRRITATION_TIPS = [
+  'Switch to a richer moisturizer or apply a thicker layer in the sandwich',
+  'Avoid over-cleansing — once at night is plenty',
+  'Never apply to damp skin — moisturize first, always',
+  'Go back to Phase 1 (2×/week) until skin re-stabilises, then rebuild',
+  'Avoid exfoliants (acids, scrubs) while irritated',
+  'Stay consistent with SPF 40 every morning without exception',
+];
+
+// Storage
+function getTretData()   { return load('gu_tret', { startDate: null, applications: [], manualPhase: null }); }
+function saveTretData(d) { save('gu_tret', d); }
+
+// Compute current phase from weeks elapsed (or manual override)
+function calcTretPhase() {
+  const d = getTretData();
+  if (d.manualPhase) return TRET_PHASES.find(p => p.id === d.manualPhase) || TRET_PHASES[0];
+  if (!d.startDate) return null;
+  const days  = daysBetween(parseLocalDate(d.startDate), new Date());
+  const week  = Math.floor(days / 7) + 1;
+  if (week <= 2) return TRET_PHASES[0];
+  if (week <= 4) return TRET_PHASES[1];
+  return TRET_PHASES[2];
+}
+
+// Is tonight a tretinoin application night?
+function isTretNight() {
+  const d     = getTretData();
+  if (!d.startDate) return true; // Default: show it until user sets start date
+  const phase = calcTretPhase();
+  if (!phase) return true;
+
+  const dow   = new Date().getDay();
+  const today = todayStr();
+
+  if (phase.id === 1) {
+    // Mon (1) + Thu (4) only
+    return phase.appliedDays.includes(dow);
+  }
+  if (phase.id === 2) {
+    // Every other day — check last application
+    if (!d.applications.length) return true;
+    const last = d.applications[d.applications.length - 1];
+    return daysBetween(parseLocalDate(last), new Date()) >= 2;
+  }
+  // Phase 3: every night
+  return true;
+}
+
+// Mark tonight as applied
+function recordTretApplication() {
+  const d = getTretData();
+  const today = todayStr();
+  if (!d.applications.includes(today)) d.applications.push(today);
+  saveTretData(d);
+}
+
+// How many weeks on tret
+function weeksOnTret() {
+  const d = getTretData();
+  if (!d.startDate) return 0;
+  return Math.floor(daysBetween(parseLocalDate(d.startDate), new Date()) / 7);
+}
+
+// Next application date string
+function nextTretNight() {
+  const phase = calcTretPhase();
+  if (!phase) return '—';
+  if (phase.id === 1) {
+    // Next Mon or Thu after today
+    const dow = new Date().getDay();
+    const daysUntilMon = (1 - dow + 7) % 7 || 7;
+    const daysUntilThu = (4 - dow + 7) % 7 || 7;
+    const next = Math.min(daysUntilMon, daysUntilThu);
+    if (next === 0) return 'Tonight';
+    if (next === 1) return 'Tomorrow';
+    return `In ${next} days`;
+  }
+  if (phase.id === 2) {
+    const d = getTretData();
+    if (!d.applications.length) return 'Tonight';
+    const last = d.applications[d.applications.length - 1];
+    const since = daysBetween(parseLocalDate(last), new Date());
+    if (since >= 2) return 'Tonight';
+    return 'Tomorrow';
+  }
+  return 'Tonight';
+}
+
+// Gym schedule: day of week → type
+const GYM_DAYS = { 1:'push', 2:'pull', 4:'push', 5:'pull' };
+const DAY_NAMES = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+const MONTH_NAMES = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+
+// ════════════════════════════════════════════════════════════════════════════
+// STORAGE
+// ════════════════════════════════════════════════════════════════════════════
+function load(key, def) {
+  try { const v = localStorage.getItem(key); return v !== null ? JSON.parse(v) : def; }
+  catch { return def; }
+}
+function save(key, val) { try { localStorage.setItem(key, JSON.stringify(val)); } catch {} }
+
+function getState()    { return load('gu_state', {}); }
+function saveState(s)  { save('gu_state', s); }
+
+function getTasks()    { return load('gu_tasks', {}); }
+function saveTasks(t)  { save('gu_tasks', t); }
+
+function getGym()      { return load('gu_gym', {}); }
+function saveGym(g)    { save('gu_gym', g); }
+
+function getPSL()      { return load('gu_psl', []); }
+function savePSL(p)    { save('gu_psl', p); }
+
+function getLogs()     { return load('gu_logs', []); }
+function saveLogs(l)   { save('gu_logs', l); }
+
+function getTanning()  { return load('gu_tan', { lastTanDate: null }); }
+function saveTanning(t){ save('gu_tan', t); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// DATE HELPERS
+// ════════════════════════════════════════════════════════════════════════════
+function todayStr() {
+  const d = new Date();
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function pad(n) { return String(n).padStart(2,'0'); }
+function dateStr(d) {
+  return `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}`;
+}
+function parseLocalDate(str) {
+  // Parse YYYY-MM-DD as local time (avoid UTC offset issues)
+  const [y,m,d] = str.split('-').map(Number);
+  return new Date(y, m-1, d);
+}
+function daysBetween(a, b) {
+  return Math.round((b - a) / 86400000);
+}
+function addDays(dateStr, n) {
+  const d = parseLocalDate(dateStr);
+  d.setDate(d.getDate() + n);
+  return dateStr(d);
+}
+function formatDisplay(str) {
+  if (!str) return 'Not set';
+  const d = parseLocalDate(str);
+  return `${DAY_NAMES[d.getDay()]} ${d.getDate()} ${MONTH_NAMES[d.getMonth()]}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TANNING LOGIC
+// ════════════════════════════════════════════════════════════════════════════
+function getNextTanDate(lastTanStr) {
+  if (!lastTanStr) return null;
+  return addDays(lastTanStr, 14);
+}
+function isTanningDay() {
+  const tan = getTanning();
+  if (!tan.lastTanDate) return false;
+  const next = getNextTanDate(tan.lastTanDate);
+  return next === todayStr();
+}
+function isPreTanDay() {
+  const tan = getTanning();
+  if (!tan.lastTanDate) return false;
+  const next = getNextTanDate(tan.lastTanDate);
+  // Pre-tan day = day before tanning day
+  return addDays(next, -1) === todayStr();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// STREAK CALCULATION
+// ════════════════════════════════════════════════════════════════════════════
+function isDayComplete(dStr) {
+  const tasks = getTasks();
+  const day = tasks[dStr] || {};
+  // Core = morning + the always-present night steps (base + end)
+  // Tret sandwich steps are excluded so rest nights still count as complete
+  const required = [
+    ...MORNING_TASKS.map(t => t.id),
+    ...NIGHT_BASE.map(t => t.id),
+    ...NIGHT_END.map(t => t.id),
+  ];
+  return required.every(id => day[id] === true);
+}
+
+function recalcStreak() {
+  const state = getState();
+  const today = todayStr();
+  const yesterday = addDays(today, -1);
+
+  let { currentStreak = 0, longestStreak = 0, lastDate = null } = state;
+
+  if (isDayComplete(today)) {
+    if (lastDate === yesterday || lastDate === today) {
+      if (lastDate !== today) currentStreak++;
+    } else {
+      currentStreak = 1;
+    }
+    lastDate = today;
+  } else if (lastDate !== yesterday && lastDate !== today) {
+    currentStreak = 0;
+  }
+
+  longestStreak = Math.max(longestStreak, currentStreak);
+  const newState = { ...state, currentStreak, longestStreak, lastDate };
+  saveState(newState);
+  return newState;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TASK RENDERING
+// ════════════════════════════════════════════════════════════════════════════
+function taskHTML(t, done) {
+  return `<div class="task-item${done?' done':''}" data-id="${t.id}" onclick="toggleTask('${t.id}')">
+    <span class="task-emoji">${t.emoji}</span>
+    <div class="task-body">
+      <div class="task-text">${t.text}</div>
+      ${t.sub ? `<div class="task-sub">${t.sub}</div>` : ''}
+    </div>
+    <div class="task-check">
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" stroke="currentColor" stroke-width="3">
+        <path stroke-linecap="round" stroke-linejoin="round" d="M4.5 12.75l6 6 9-13.5"/>
+      </svg>
+    </div>
+  </div>`;
+}
+
+function renderTaskSection(containerId, tasks, dayTasks) {
+  const el = document.getElementById(containerId);
+  if (!el) return;
+  el.innerHTML = tasks.map(t => taskHTML(t, !!dayTasks[t.id])).join('');
+}
+
+function badgeText(tasks, dayTasks) {
+  const done = tasks.filter(t => dayTasks[t.id]).length;
+  return `${done}/${tasks.length}`;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROGRESS RING
+// ════════════════════════════════════════════════════════════════════════════
+function updateRing(pct) {
+  const circ = 351.86;
+  const offset = circ - (pct / 100) * circ;
+  const fill = document.getElementById('ringFill');
+  const pctEl = document.getElementById('ringPct');
+  const labelEl = document.getElementById('ringLabel');
+  if (fill) fill.style.strokeDashoffset = offset;
+  if (pctEl) pctEl.textContent = Math.round(pct) + '%';
+  if (labelEl) labelEl.textContent = pct === 100 ? 'complete 🎉' : 'tasks done';
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// RENDER TODAY
+// ════════════════════════════════════════════════════════════════════════════
+function renderToday() {
+  const today = todayStr();
+  const tasks  = getTasks();
+  const dayTasks = tasks[today] || {};
+  const now   = new Date();
+  const dow   = now.getDay();
+
+  // Morning
+  renderTaskSection('morningTasks', MORNING_TASKS, dayTasks);
+  document.getElementById('morningBadge').textContent = badgeText(MORNING_TASKS, dayTasks);
+
+  // Night — build dynamically based on tret phase
+  const tretTonight = !isPreTanDay() && !isTanningDay() && isTretNight();
+  const nightTasksTonight = [
+    ...NIGHT_BASE,
+    ...(tretTonight ? NIGHT_TRET : []),
+    ...NIGHT_END,
+  ];
+  // If it was a pre-tan night swap tret steps for skip notice
+  const nightTasksFinal = isPreTanDay()
+    ? [...NIGHT_BASE, ...PRE_TAN_TASKS, ...NIGHT_END]
+    : nightTasksTonight;
+
+  renderTaskSection('nightTasks', nightTasksFinal, dayTasks);
+  document.getElementById('nightBadge').textContent = badgeText(nightTasksFinal, dayTasks);
+
+  // Auto-record tret application when the tret task is checked
+  if (tretTonight && dayTasks['tret']) recordTretApplication();
+
+  // Show/hide tret phase status card
+  renderTretStatusCard(tretTonight);
+
+  // Gum (extra midday + evening)
+  renderTaskSection('gumTasks', GUM_TASKS, dayTasks);
+
+  // Gym
+  const gymType = GYM_DAYS[dow];
+  const gymSec = document.getElementById('gymSection');
+  if (gymType) {
+    gymSec.style.display = '';
+    const label = gymType === 'push' ? 'Push Day' : 'Pull Day';
+    document.getElementById('gymBadge').textContent = label;
+    renderTaskSection('gymTasks', GYM_TASKS, dayTasks);
+  } else {
+    gymSec.style.display = 'none';
+  }
+
+  // Hair (Wednesday)
+  const hairSec = document.getElementById('hairSection');
+  if (dow === 3) {
+    hairSec.style.display = '';
+    renderTaskSection('hairTasks', HAIR_TASKS, dayTasks);
+  } else {
+    hairSec.style.display = 'none';
+  }
+
+  // Tanning & pre-tan warnings
+  const warnArea = document.getElementById('warningArea');
+  warnArea.innerHTML = '';
+  const tanSec = document.getElementById('tanSection');
+
+  if (isTanningDay()) {
+    tanSec.style.display = '';
+    renderTaskSection('tanTasks', TAN_TASKS, dayTasks);
+    warnArea.innerHTML = `<div class="warning-card">
+      <span class="wc-icon">🌞</span>
+      <div><div class="wc-title">Tanning Day!</div>
+      <div class="wc-body">Max 5 mins in the bed. Skip tretinoin tonight AND you already skipped last night. Moisturize after!</div></div>
+    </div>`;
+  } else {
+    tanSec.style.display = 'none';
+  }
+
+  if (isPreTanDay()) {
+    warnArea.innerHTML = `<div class="warning-card">
+      <span class="wc-icon">⚠️</span>
+      <div><div class="wc-title">Tanning Tomorrow — Skip Tretinoin!</div>
+      <div class="wc-body">No tretinoin tonight (or tomorrow night). Moisturize normally instead. Everything else in your routine is fine.</div></div>
+    </div>`;
+  }
+
+  // Calculate overall progress (use tonight's actual night task list)
+  const allRequired = [...MORNING_TASKS, ...nightTasksFinal, ...GUM_TASKS];
+  if (gymType) allRequired.push(...GYM_TASKS);
+  if (dow === 3) allRequired.push(...HAIR_TASKS);
+  if (isTanningDay()) allRequired.push(...TAN_TASKS);
+
+  const totalDone = allRequired.filter(t => dayTasks[t.id]).length;
+  const pct = allRequired.length ? (totalDone / allRequired.length) * 100 : 0;
+  updateRing(pct);
+
+  // Complete banner — core = morning + always-required night steps
+  const coreNight = [...NIGHT_BASE, ...NIGHT_END, ...(tretTonight ? NIGHT_TRET : [])];
+  const allCore = [...MORNING_TASKS, ...coreNight].every(t => dayTasks[t.id]);
+  document.getElementById('completeBanner').classList.toggle('show', allCore);
+
+  // Update streak
+  const st = recalcStreak();
+  document.getElementById('streakCount').textContent = st.currentStreak;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TOGGLE TASK
+// ════════════════════════════════════════════════════════════════════════════
+function toggleTask(id) {
+  const today = todayStr();
+  const tasks = getTasks();
+  if (!tasks[today]) tasks[today] = {};
+  tasks[today][id] = !tasks[today][id];
+  saveTasks(tasks);
+  renderToday();
+  scheduleNotificationsIfEnabled();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TRETINOIN STATUS CARD (shown beneath night routine)
+// ════════════════════════════════════════════════════════════════════════════
+function renderTretStatusCard(tretTonight) {
+  const el = document.getElementById('tretStatusCard');
+  if (!el) return;
+
+  const d     = getTretData();
+  const phase = calcTretPhase();
+  const weeks = weeksOnTret();
+  const next  = nextTretNight();
+
+  if (!d.startDate) {
+    el.innerHTML = `
+      <div class="tret-card">
+        <div class="tret-header">💊 Tretinoin Protocol</div>
+        <div class="tret-body">
+          <p style="color:var(--muted2);font-size:13px;margin-bottom:10px">
+            Set your tretinoin start date to track your phase automatically.
+          </p>
+          <button class="tret-btn" onclick="openTretSettings()">📅 Set Start Date</button>
+        </div>
+      </div>`;
+    return;
+  }
+
+  const phaseColor = phase?.id === 1 ? 'var(--gold)' : phase?.id === 2 ? 'var(--purple)' : 'var(--green)';
+  const tonightStatus = tretTonight
+    ? `<span style="color:var(--green)">✅ Apply tonight</span>`
+    : `<span style="color:var(--muted2)">😴 Rest night — no tret</span>`;
+
+  // Irritation tips (collapsed by default)
+  const tips = TRET_IRRITATION_TIPS.map(t => `<li>${t}</li>`).join('');
+
+  el.innerHTML = `
+    <div class="tret-card">
+      <div class="tret-header">💊 Tretinoin Protocol</div>
+      <div class="tret-phase-badge" style="background:${phaseColor}18;border-color:${phaseColor}40;color:${phaseColor}">
+        ${phase?.label || 'Phase 1'} · Week ${weeks || 1}
+      </div>
+      <div class="tret-grid">
+        <div class="tret-stat">
+          <div class="ts-val">${weeks}</div>
+          <div class="ts-lab">Weeks on Tret</div>
+        </div>
+        <div class="tret-stat">
+          <div class="ts-val">${phase?.tagline || 'Mon+Thu'}</div>
+          <div class="ts-lab">Current Schedule</div>
+        </div>
+        <div class="tret-stat">
+          <div class="ts-val">${next}</div>
+          <div class="ts-lab">Next Application</div>
+        </div>
+        <div class="tret-stat">
+          <div class="ts-val">${d.applications.length}</div>
+          <div class="ts-lab">Total Sessions</div>
+        </div>
+      </div>
+      <div class="tret-tonight">${tonightStatus}</div>
+      ${tretTonight ? `
+        <div class="tret-method">
+          <strong>🥪 Moisturizer Sandwich:</strong>
+          Moisturize → wait 10 min → pea-sized tret (whole face) → wait → moisturize on top
+        </div>` : ''}
+      <div class="tret-advance">${phase?.advance || ''}</div>
+      <details class="tret-irritation">
+        <summary>😮‍💨 If your skin gets irritated…</summary>
+        <ul style="margin:8px 0 0 16px;line-height:1.7;font-size:12px;color:var(--muted2)">${tips}</ul>
+      </details>
+      <div style="display:flex;gap:8px;margin-top:12px;flex-wrap:wrap">
+        <button class="tret-btn-sm" onclick="openTretSettings()">⚙️ Change Phase / Date</button>
+        ${phase && phase.id < 3 ? `<button class="tret-btn-sm" onclick="advanceTretPhase()">⬆️ Advance to Phase ${(phase?.id||1)+1}</button>` : ''}
+        ${phase && phase.id > 1 ? `<button class="tret-btn-sm" style="color:var(--red)" onclick="goBackTretPhase()">⬇️ Back to Phase ${(phase?.id||2)-1}</button>` : ''}
+      </div>
+    </div>`;
+}
+
+function openTretSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+  document.getElementById('tretSettingsSection').style.display = '';
+}
+
+function advanceTretPhase() {
+  const d = getTretData();
+  const phase = calcTretPhase();
+  if (!phase || phase.id >= 3) return;
+  d.manualPhase = phase.id + 1;
+  saveTretData(d);
+  renderToday();
+  showToast(`Moved to Phase ${phase.id + 1} ✨`);
+}
+
+function goBackTretPhase() {
+  const d = getTretData();
+  const phase = calcTretPhase();
+  if (!phase || phase.id <= 1) return;
+  d.manualPhase = phase.id - 1;
+  saveTretData(d);
+  renderToday();
+  showToast(`Back to Phase ${phase.id - 1} — skin first 🙏`);
+}
+
+function saveTretStartDate() {
+  const val = document.getElementById('tretStartInput')?.value;
+  if (!val) { showToast('Pick a date first'); return; }
+  const d = getTretData();
+  d.startDate   = val;
+  d.manualPhase = null; // Reset manual override when start date changes
+  saveTretData(d);
+  renderToday();
+  if (typeof renderProgress === 'function') renderProgress();
+  showToast('Tretinoin start date saved 💊');
+}
+
+function setManualTretPhase(n) {
+  const d = getTretData();
+  d.manualPhase = n; // null = auto
+  saveTretData(d);
+  renderToday();
+  closeSettings();
+  showToast(n ? `Locked to Phase ${n} 💊` : 'Phase set to auto 🔄');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// GYM TAB
+// ════════════════════════════════════════════════════════════════════════════
+function renderGym() {
+  const gymData = getGym();
+  const now = new Date();
+  const today = todayStr();
+  const grid = document.getElementById('weekGrid');
+  if (!grid) return;
+
+  // Show Mon–Fri of current week
+  const monday = new Date(now);
+  monday.setHours(0,0,0,0);
+  const dayOffset = (now.getDay() + 6) % 7; // 0=Mon
+  monday.setDate(monday.getDate() - dayOffset);
+
+  let html = '';
+  for (let i = 0; i < 5; i++) {
+    const d = new Date(monday);
+    d.setDate(d.getDate() + i);
+    const ds = dateStr(d);
+    const dow = d.getDay();
+    const gymType = GYM_DAYS[dow];
+    const isToday = ds === today;
+    const isDone  = gymData[ds] || false;
+    const isRest  = !gymType;
+
+    const typeLabel = gymType ? (gymType === 'push' ? 'Push' : 'Pull') : 'Rest';
+    const icon = isRest ? '😴' : (isDone ? '✅' : (gymType === 'push' ? '💪' : '🏋️'));
+
+    const cls = [
+      'day-pill',
+      isToday ? 'today' : '',
+      isDone  ? 'done'  : '',
+      isRest  ? 'rest'  : '',
+    ].filter(Boolean).join(' ');
+
+    const clickAttr = isRest ? '' : `onclick="toggleGymDay('${ds}')"`;
+    html += `<div class="${cls}" ${clickAttr}>
+      <div class="day-name">${DAY_NAMES[dow]}</div>
+      <div class="day-icon">${icon}</div>
+      <div class="day-type">${typeLabel}</div>
+    </div>`;
+  }
+  grid.innerHTML = html;
+}
+
+function toggleGymDay(ds) {
+  const gym = getGym();
+  gym[ds] = !gym[ds];
+  saveGym(gym);
+  renderGym();
+  showToast(gym[ds] ? '💪 Gym logged!' : 'Session removed');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PROGRESS TAB
+// ════════════════════════════════════════════════════════════════════════════
+function renderProgress() {
+  const st = recalcStreak();
+  document.getElementById('p-streak').textContent  = st.currentStreak;
+  document.getElementById('p-longest').textContent = st.longestStreak;
+
+  // 7-day heatmap
+  const heat = document.getElementById('heatRow');
+  const tasks = getTasks();
+  const today = todayStr();
+  let html = '';
+  for (let i = 6; i >= 0; i--) {
+    const d = new Date();
+    d.setDate(d.getDate() - i);
+    const ds = dateStr(d);
+    const dayTasks = tasks[ds] || {};
+    const req = [...MORNING_TASKS, ...NIGHT_TASKS];
+    const done = req.filter(t => dayTasks[t.id]).length;
+    const pct  = done / req.length;
+    const cls  = pct === 1 ? 'done' : pct > 0 ? 'partial' : '';
+    html += `<div class="heat-cell ${cls}">
+      <div class="hc-day">${DAY_NAMES[d.getDay()][0]}</div>
+      <div style="font-size:14px">${pct === 1 ? '✨' : pct > 0 ? '🌙' : '·'}</div>
+    </div>`;
+  }
+  heat.innerHTML = html;
+
+  // PSL
+  renderPSL();
+
+  // Tanning
+  renderTanning();
+}
+
+function renderPSL() {
+  const psl = getPSL();
+  const latest = psl.length ? psl[psl.length-1] : null;
+  document.getElementById('pslCurrent').textContent = latest ? latest.rating.toFixed(1) : '—';
+
+  const hist = document.getElementById('pslHistory');
+  if (!psl.length) {
+    hist.innerHTML = '<div style="color:var(--muted);font-size:13px;text-align:center;padding:12px 0">No ratings logged yet</div>';
+    return;
+  }
+  hist.innerHTML = [...psl].reverse().slice(0,8).map(e =>
+    `<div class="psl-entry">
+      <span class="pe-date">${formatDisplay(e.date)}</span>
+      ${e.note ? `<span class="pe-note">${e.note}</span>` : ''}
+      <span class="pe-val">${e.rating.toFixed(1)}</span>
+    </div>`
+  ).join('');
+}
+
+function renderTanning() {
+  const tan = getTanning();
+  const nextDate = getNextTanDate(tan.lastTanDate);
+  const today = todayStr();
+
+  document.getElementById('lastTanDisplay').textContent = formatDisplay(tan.lastTanDate);
+  document.getElementById('nextTanDisplay').textContent = nextDate ? formatDisplay(nextDate) : '—';
+
+  if (tan.lastTanDate) {
+    const d = daysBetween(parseLocalDate(tan.lastTanDate), new Date());
+    document.getElementById('lastTanDays').textContent = `${d} days ago`;
+  } else {
+    document.getElementById('lastTanDays').textContent = '';
+  }
+
+  if (nextDate) {
+    const d = daysBetween(new Date(), parseLocalDate(nextDate));
+    document.getElementById('nextTanDays').textContent = d === 0 ? 'TODAY!' : d < 0 ? 'Overdue!' : `in ${d} days`;
+  } else {
+    document.getElementById('nextTanDays').textContent = '';
+  }
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// PSL ACTIONS
+// ════════════════════════════════════════════════════════════════════════════
+(function initPSLSlider() {
+  const slider = document.getElementById('pslSlider');
+  if (!slider) return;
+  function updateSliderStyle() {
+    const pct = ((slider.value - 1) / 9) * 100;
+    slider.style.setProperty('--pct', pct + '%');
+  }
+  slider.addEventListener('input', updateSliderStyle);
+  updateSliderStyle();
+})();
+
+function logPSL() {
+  const slider = document.getElementById('pslSlider');
+  const noteEl = document.getElementById('pslNote');
+  const rating = parseFloat(slider.value);
+  const note   = noteEl.value.trim();
+
+  const psl = getPSL();
+  psl.push({ date: todayStr(), rating, note });
+  savePSL(psl);
+  noteEl.value = '';
+  renderPSL();
+  showToast(`PSL ${rating.toFixed(1)} logged! ✨`);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TANNING ACTIONS
+// ════════════════════════════════════════════════════════════════════════════
+function toggleTanPicker() {
+  const picker = document.getElementById('tanPicker');
+  picker.classList.toggle('show');
+  if (picker.classList.contains('show')) {
+    const tan = getTanning();
+    if (tan.lastTanDate) document.getElementById('tanDateInput').value = tan.lastTanDate;
+  }
+}
+
+function saveTanDate() {
+  const val = document.getElementById('tanDateInput').value;
+  if (!val) { showToast('Please select a date'); return; }
+  const tan = getTanning();
+  tan.lastTanDate = val;
+  saveTanning(tan);
+  document.getElementById('tanPicker').classList.remove('show');
+  renderProgress();
+  renderToday();
+  scheduleNotificationsIfEnabled();
+  showToast('Tanning date saved! 🌞');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// LOG TAB
+// ════════════════════════════════════════════════════════════════════════════
+function renderLog() {
+  const logs = getLogs();
+  const container = document.getElementById('logEntries');
+  if (!logs.length) {
+    container.innerHTML = `<div class="empty-state"><div class="es-icon">📝</div>No notes yet — start logging your progress!</div>`;
+    return;
+  }
+  container.innerHTML = [...logs].reverse().map((e,ri) => {
+    const i = logs.length - 1 - ri;
+    return `<div class="log-entry">
+      <div class="le-date">
+        <button class="le-delete" onclick="deleteLog(${i})" style="float:none;display:inline-flex">✕</button>
+        ${formatDisplay(e.date)}
+      </div>
+      <div class="le-text">${e.text.replace(/\n/g,'<br>')}</div>
+    </div>`;
+  }).join('');
+}
+
+function submitLog() {
+  const input = document.getElementById('logInput');
+  const text  = input.value.trim();
+  if (!text) { showToast('Write something first!'); return; }
+  const logs = getLogs();
+  logs.push({ date: todayStr(), text });
+  saveLogs(logs);
+  input.value = '';
+  renderLog();
+  showToast('Note saved! 📝');
+}
+
+function deleteLog(i) {
+  const logs = getLogs();
+  logs.splice(i, 1);
+  saveLogs(logs);
+  renderLog();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// ════════════════════════════════════════════════════════════════════════════
+// CALENDAR — helpers
+// ════════════════════════════════════════════════════════════════════════════
+
+// Task timings (24h strings for sort, display as 12h)
+const TASK_SCHEDULE = [
+  { id:'wash-am',        time:'07:00', group:'Morning Routine' },
+  { id:'caffeine',       time:'07:05', group:'Morning Routine' },
+  { id:'volufiline',     time:'07:10', group:'Morning Routine' },
+  { id:'spf',            time:'07:13', group:'Morning Routine' },
+  { id:'gum-am',         time:'07:30', group:'Morning Routine' },
+  { id:'mew-am',         time:'07:35', group:'Morning Routine' },
+  { id:'gum-midday',     time:'12:00', group:'Afternoon' },
+  { id:'gum-eve',        time:'17:00', group:'Afternoon' },
+  { id:'gym-done',       time:'17:30', group:'Gym' },
+  { id:'deep-cond',      time:'20:00', group:'Hair' },
+  { id:'tan-bed',        time:'18:00', group:'Tanning' },
+  { id:'moist-after-tan',time:'18:05', group:'Tanning' },
+  { id:'skip-tret',      time:'21:00', group:'Night Routine' },
+  { id:'wash-pm',        time:'21:30', group:'Night Routine' },
+  { id:'moist-buffer',   time:'21:35', group:'Night Routine' },
+  { id:'wait-10',        time:'21:45', group:'Night Routine' },
+  { id:'tret',           time:'21:55', group:'Night Routine' },
+  { id:'wait-tret',      time:'21:58', group:'Night Routine' },
+  { id:'moist-top',      time:'22:00', group:'Night Routine' },
+  { id:'pillow',         time:'22:30', group:'Night Routine' },
+];
+
+function fmt12(t24) {
+  const [h, m] = t24.split(':').map(Number);
+  const period = h < 12 ? 'AM' : 'PM';
+  const hr = h % 12 || 12;
+  return `${hr}:${String(m).padStart(2,'0')} ${period}`;
+}
+
+// Find a task definition by id across all task arrays
+function findTaskDef(id) {
+  const all = [
+    ...MORNING_TASKS, ...NIGHT_BASE, ...NIGHT_TRET, ...NIGHT_END,
+    ...GUM_TASKS, ...GYM_TASKS, ...HAIR_TASKS, ...TAN_TASKS, ...PRE_TAN_TASKS,
+  ];
+  return all.find(t => t.id === id);
+}
+
+// Does a given date string fall on a tanning day (any multiple of 14 from lastTanDate)?
+function isTanDateStr(ds) {
+  const tan = getTanning();
+  if (!tan.lastTanDate) return false;
+  const diff = daysBetween(parseLocalDate(tan.lastTanDate), parseLocalDate(ds));
+  return diff > 0 && diff % 14 === 0;
+}
+function isPreTanDateStr(ds) { return isTanDateStr(addDays(ds, 1)); }
+
+// Full info about what happens on a given date
+function getDayInfo(ds) {
+  const d         = parseLocalDate(ds);
+  const dow       = d.getDay();
+  const todayS    = todayStr();
+  const isPast    = ds < todayS;
+  const isToday   = ds === todayS;
+  const dayTasks  = (getTasks()[ds] || {});
+  const gymType   = GYM_DAYS[dow] || null;
+  const isHair    = (dow === 3);
+  const isTan     = isTanDateStr(ds);
+  const isPreTan  = isPreTanDateStr(ds);
+
+  // Tret night for this date
+  const phase = calcTretPhase();
+  let tretNight = false;
+  if (phase && !isTan && !isPreTan) {
+    if (phase.id === 1) tretNight = (dow === 1 || dow === 4);
+    else if (phase.id === 2) tretNight = true; // approximate — exact depends on last application
+    else tretNight = true;
+  }
+
+  const isDone = (isPast || isToday) && isDayComplete(ds);
+
+  return { dow, isPast, isToday, dayTasks, gymType, isHair, isTan, isPreTan, tretNight, isDone };
+}
+
+// Ordered schedule for a date — returns [{time, emoji, text, sub, id, group, done?}]
+function getOrderedSchedule(ds) {
+  const info = getDayInfo(ds);
+  const items = [];
+
+  // Walk TASK_SCHEDULE order; include task if relevant for this day
+  for (const sched of TASK_SCHEDULE) {
+    const id = sched.id;
+
+    // Skip conditions
+    if (id === 'gym-done'        && !info.gymType)    continue;
+    if (id === 'deep-cond'       && !info.isHair)     continue;
+    if (id === 'tan-bed'         && !info.isTan)      continue;
+    if (id === 'moist-after-tan' && !info.isTan)      continue;
+    if (id === 'skip-tret'       && !info.isPreTan)   continue;
+    if (['wait-10','tret','wait-tret','moist-top'].includes(id) && (!info.tretNight || info.isPreTan || info.isTan)) continue;
+
+    const def = findTaskDef(id);
+    if (!def) continue;
+
+    let text = def.text;
+    let sub  = def.sub;
+    if (id === 'gym-done') {
+      const wName = info.gymType === 'push' ? 'Push Day 💪' : 'Pull Day 🏋️';
+      const exList = info.gymType === 'push'
+        ? 'Bench · OHP · Lateral Raises · Face Pulls · Neck Curls · Lateral Neck Raises'
+        : 'Deadlift · Squats · Rows · Pull-ups · Shrugs · Rear Delt Flyes';
+      text = wName;
+      sub  = exList;
+    }
+
+    items.push({
+      id,
+      time:  sched.time,
+      time12: fmt12(sched.time),
+      group: sched.group,
+      emoji: def.emoji,
+      text,
+      sub,
+      done: !!info.dayTasks[id],
+    });
+  }
+
+  return items;
+}
+
+// Storage
+function getRoutinePeriod()   { return load('gu_period', { start: null, end: null }); }
+function saveRoutinePeriod(p) { save('gu_period', p); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// CALENDAR — rendering
+// ════════════════════════════════════════════════════════════════════════════
+let _calYear  = new Date().getFullYear();
+let _calMonth = new Date().getMonth();
+
+function renderCalendar() {
+  const grid    = document.getElementById('calGrid');
+  const lbl     = document.getElementById('calMonthLabel');
+  if (!grid || !lbl) return;
+
+  lbl.textContent = `${MONTH_NAMES[_calMonth]} ${_calYear}`;
+
+  const period   = getRoutinePeriod();
+  const todayS   = todayStr();
+  const firstDow = new Date(_calYear, _calMonth, 1).getDay(); // 0=Sun
+  const daysIn   = new Date(_calYear, _calMonth + 1, 0).getDate();
+
+  let html = '';
+
+  // Leading blanks
+  for (let i = 0; i < firstDow; i++) html += '<div class="cal-cell cal-empty"></div>';
+
+  for (let d = 1; d <= daysIn; d++) {
+    const ds  = `${_calYear}-${pad(_calMonth + 1)}-${pad(d)}`;
+    const info = getDayInfo(ds);
+
+    // Period range check
+    const hasPeriod = period.start || period.end;
+    const inRange   = (!period.start || ds >= period.start) && (!period.end || ds <= period.end);
+    const outside   = hasPeriod && !inRange;
+
+    let cls = 'cal-cell';
+    if (info.isToday) cls += ' cal-today';
+    if (outside)      cls += ' cal-outside';
+    if (info.isDone)  cls += ' cal-done';
+
+    // Dots
+    const dots = [];
+    if (!outside) {
+      if (info.gymType)               dots.push('<span class="dot dot-gym"></span>');
+      if (info.tretNight && !info.isPreTan && !info.isTan) dots.push('<span class="dot dot-tret"></span>');
+      if (info.isTan)                 dots.push('<span class="dot dot-tan"></span>');
+      if (info.isPreTan)              dots.push('<span class="dot dot-pretан"></span>');
+      if (info.isHair)                dots.push('<span class="dot dot-hair"></span>');
+    }
+
+    html += `<div class="${cls}" data-ds="${ds}" onclick="openDaySheet('${ds}')">
+      <div class="cal-num">${d}</div>
+      <div class="cal-dots">${dots.slice(0,4).join('')}</div>
+    </div>`;
+  }
+
+  grid.innerHTML = html;
+
+  // Restore saved period dates into inputs
+  if (period.start) { const el = document.getElementById('periodStart'); if(el) el.value = period.start; }
+  if (period.end)   { const el = document.getElementById('periodEnd');   if(el) el.value = period.end;   }
+}
+
+function calPrev() { _calMonth--; if (_calMonth < 0) { _calMonth = 11; _calYear--; } renderCalendar(); }
+function calNext() { _calMonth++; if (_calMonth > 11) { _calMonth = 0; _calYear++; } renderCalendar(); }
+
+function applyRoutinePeriod() {
+  const start = document.getElementById('periodStart')?.value || null;
+  const end   = document.getElementById('periodEnd')?.value   || null;
+  saveRoutinePeriod({ start, end });
+  renderCalendar();
+  showToast('Period applied to calendar ✓');
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// CALENDAR — day detail sheet
+// ════════════════════════════════════════════════════════════════════════════
+function openDaySheet(ds) {
+  const overlay = document.getElementById('dayOverlay');
+  if (!overlay) return;
+
+  const d    = parseLocalDate(ds);
+  const info = getDayInfo(ds);
+  const sched = getOrderedSchedule(ds);
+  const todayS = todayStr();
+
+  // Header
+  const fullDate = `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}, ${d.getFullYear()}`;
+  const sub = info.isToday ? 'Today' : info.isPast ? 'Past day' : 'Upcoming';
+  document.getElementById('daySheetTitle').textContent = fullDate;
+  document.getElementById('daySheetSub').textContent   = sub;
+
+  // Pills
+  const pills = [];
+  if (info.gymType)  pills.push(`<span class="sdc-pill pill-gym">${info.gymType === 'push' ? 'Push Day' : 'Pull Day'}</span>`);
+  if (info.isTan)    pills.push(`<span class="sdc-pill pill-tan">Tan Day</span>`);
+  if (info.isPreTan) pills.push(`<span class="sdc-pill pill-skip">Skip Tret</span>`);
+  if (info.isHair)   pills.push(`<span class="sdc-pill pill-hair">Hair Night</span>`);
+  if (info.tretNight && !info.isPreTan && !info.isTan) pills.push(`<span class="sdc-pill pill-tret">Tret Night</span>`);
+  if (info.isDone)   pills.push(`<span class="sdc-pill pill-gym">✓ Complete</span>`);
+  if (!info.gymType && !info.isTan && !info.isHair && [0,6].includes(info.dow)) pills.push(`<span class="sdc-pill pill-rest">Rest Day</span>`);
+  document.getElementById('daySheetPills').innerHTML = pills.join('');
+
+  // Group schedule items
+  const groups = {};
+  for (const item of sched) {
+    if (!groups[item.group]) groups[item.group] = [];
+    groups[item.group].push(item);
+  }
+
+  const showCheck = ds <= todayS;
+  let content = '';
+  for (const [grp, items] of Object.entries(groups)) {
+    content += `<div class="ds-group"><div class="ds-group-lbl">${grp}</div>`;
+    for (const item of items) {
+      const done = item.done && showCheck;
+      content += `<div class="ds-item${done ? ' ds-done' : ''}">
+        <div class="ds-time">${item.time12}</div>
+        <div class="ds-emoji">${item.emoji}</div>
+        <div class="ds-right">
+          <div class="ds-text">${item.text}</div>
+          ${item.sub ? `<div class="ds-sub">${item.sub}</div>` : ''}
+        </div>
+        ${showCheck ? `<div class="ds-tick"></div>` : ''}
+      </div>`;
+    }
+    content += `</div>`;
+  }
+
+  if (!content) content = `<div style="text-align:center;padding:24px;color:var(--muted2);font-size:13px">No tasks scheduled for this day.</div>`;
+  document.getElementById('daySheetContent').innerHTML = content;
+
+  overlay.classList.add('show');
+}
+
+function closeDaySheet()            { document.getElementById('dayOverlay')?.classList.remove('show'); }
+function closeDayOverlay(e)         { if (e.target === document.getElementById('dayOverlay')) closeDaySheet(); }
+
+// ════════════════════════════════════════════════════════════════════════════
+// CALENDAR — full schedule list
+// ════════════════════════════════════════════════════════════════════════════
+function viewFullSchedule() {
+  const period = getRoutinePeriod();
+  if (!period.start || !period.end) {
+    showToast('Set a start and end date first');
+    return;
+  }
+
+  const start  = parseLocalDate(period.start);
+  const end    = parseLocalDate(period.end);
+  if (end <= start) { showToast('End date must be after start date'); return; }
+
+  const diffDays = daysBetween(start, end);
+  if (diffDays > 365) { showToast('Maximum range is 365 days'); return; }
+
+  let html = '';
+  const cur = new Date(start);
+  while (cur <= end) {
+    const ds   = dateStr(cur);
+    const info = getDayInfo(ds);
+    const d    = parseLocalDate(ds);
+    const sched = getOrderedSchedule(ds);
+
+    // Pill tags
+    const pills = [];
+    if (info.gymType)  pills.push(`<span class="sdc-pill pill-gym">${info.gymType === 'push' ? 'Push' : 'Pull'}</span>`);
+    if (info.isTan)    pills.push(`<span class="sdc-pill pill-tan">Tan</span>`);
+    if (info.isPreTan) pills.push(`<span class="sdc-pill pill-skip">Skip Tret</span>`);
+    if (info.isHair)   pills.push(`<span class="sdc-pill pill-hair">Hair</span>`);
+    if (info.tretNight && !info.isPreTan && !info.isTan) pills.push(`<span class="sdc-pill pill-tret">Tret</span>`);
+    if (info.isDone)   pills.push(`<span class="sdc-pill pill-gym">✓</span>`);
+    if (!pills.length) pills.push(`<span class="sdc-pill pill-rest">Rest</span>`);
+
+    const showCheck = ds <= todayStr();
+    let rows = '';
+    for (const item of sched) {
+      rows += `<div class="sched-row">
+        <div class="sr-time">${item.time12}</div>
+        <div class="sr-emoji">${item.emoji}</div>
+        <div>
+          <div class="sr-text">${item.text}</div>
+          ${item.sub ? `<div class="sr-sub">${item.sub}</div>` : ''}
+        </div>
+      </div>`;
+    }
+    if (!rows) rows = `<div style="font-size:12px;color:var(--muted2);padding:8px 0">Rest day — no tasks scheduled.</div>`;
+
+    const id = `sdc-${ds.replace(/-/g,'_')}`;
+    html += `<div class="sched-day-card">
+      <div class="sdc-head" onclick="toggleSchedDay('${id}')">
+        <div>
+          <div class="sdc-date">${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}</div>
+        </div>
+        <div style="display:flex;align-items:center;gap:6px">
+          <div class="sdc-pills">${pills.join('')}</div>
+          <div class="sdc-chevron" id="${id}-chev">▾</div>
+        </div>
+      </div>
+      <div class="sdc-body" id="${id}">${rows}</div>
+    </div>`;
+
+    cur.setDate(cur.getDate() + 1);
+  }
+
+  document.getElementById('schedList').innerHTML = html;
+  const wrap = document.getElementById('schedListWrap');
+  wrap.style.display = '';
+  wrap.scrollIntoView({ behavior: 'smooth', block: 'start' });
+}
+
+function toggleSchedDay(id) {
+  const body = document.getElementById(id);
+  const chev = document.getElementById(id + '-chev');
+  if (!body) return;
+  const open = body.classList.toggle('open');
+  if (chev) chev.classList.toggle('open', open);
+}
+
+function hideSchedList() {
+  const wrap = document.getElementById('schedListWrap');
+  if (wrap) wrap.style.display = 'none';
+}
+
+// TAB SWITCHING
+// ════════════════════════════════════════════════════════════════════════════
+let currentTab = 'today';
+function switchTab(tab) {
+  document.querySelectorAll('.tab-panel').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('nav-' + tab)?.classList.add('active');
+  currentTab = tab;
+  document.querySelector('.app-main').scrollTop = 0;
+
+  if (tab === 'gym')      renderGym();
+  if (tab === 'progress') renderProgress();
+  if (tab === 'log')      renderLog();
+  if (tab === 'calendar') renderCalendar();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SETTINGS MODAL
+// ════════════════════════════════════════════════════════════════════════════
+function openSettings() {
+  document.getElementById('settingsModal').classList.add('show');
+  updateNotifUI();
+  // Pre-fill tret start date if set
+  const td = getTretData();
+  if (td.startDate) {
+    const inp = document.getElementById('tretStartInput');
+    if (inp) inp.value = td.startDate;
+  }
+}
+function closeSettings() {
+  document.getElementById('settingsModal').classList.remove('show');
+}
+function closeSettingsOutside(e) {
+  if (e.target === document.getElementById('settingsModal')) closeSettings();
+}
+
+function resetToday() {
+  const tasks = getTasks();
+  tasks[todayStr()] = {};
+  saveTasks(tasks);
+  closeSettings();
+  renderToday();
+  showToast('Today reset ✓');
+}
+
+function confirmReset() {
+  if (!confirm('Reset ALL data? This cannot be undone.')) return;
+  localStorage.clear();
+  closeSettings();
+  location.reload();
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// NOTIFICATIONS
+// ════════════════════════════════════════════════════════════════════════════
+function updateNotifUI() {
+  const perm   = Notification.permission;
+  const state  = getState();
+  const enabled = state.notifsEnabled && perm === 'granted';
+
+  const toggle = document.getElementById('notifToggle');
+  const status = document.getElementById('notifStatus');
+  if (toggle) toggle.classList.toggle('on', enabled);
+
+  const msgs = {
+    granted: enabled ? 'Notifications active ✓' : 'Permission granted — tap toggle to enable',
+    denied:  'Blocked in browser settings',
+    default: 'Tap toggle to request permission',
+  };
+  if (status) status.textContent = msgs[perm] || msgs.default;
+}
+
+async function toggleNotifications() {
+  const state = getState();
+
+  if (Notification.permission === 'denied') {
+    showToast('Notifications blocked. Enable in Settings > Safari > Notifications.');
+    return;
+  }
+
+  if (!state.notifsEnabled) {
+    // Request permission
+    const perm = await Notification.requestPermission();
+    if (perm === 'granted') {
+      state.notifsEnabled = true;
+      saveState(state);
+      scheduleNotifications();
+      showToast('Notifications enabled! 🔔');
+    } else {
+      showToast('Permission not granted.');
+    }
+  } else {
+    state.notifsEnabled = false;
+    saveState(state);
+    showToast('Notifications disabled.');
+  }
+  updateNotifUI();
+}
+
+function scheduleNotificationsIfEnabled() {
+  const state = getState();
+  if (state.notifsEnabled && Notification.permission === 'granted') {
+    scheduleNotifications();
+  }
+}
+
+function scheduleNotifications() {
+  if (!navigator.serviceWorker.controller) return;
+  navigator.serviceWorker.controller.postMessage({
+    type: 'SCHEDULE',
+    preTan: isPreTanDay(),
+  });
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// TOAST
+// ════════════════════════════════════════════════════════════════════════════
+let toastTimer;
+function showToast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  clearTimeout(toastTimer);
+  toastTimer = setTimeout(() => el.classList.remove('show'), 2500);
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// HEADER DATE
+// ════════════════════════════════════════════════════════════════════════════
+function updateHeaderDate() {
+  const d = new Date();
+  const str = `${DAY_NAMES[d.getDay()]}, ${MONTH_NAMES[d.getMonth()]} ${d.getDate()}`;
+  document.getElementById('headerDate').textContent = str;
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// APPLE TOUCH ICON (dynamic canvas generation)
+// ════════════════════════════════════════════════════════════════════════════
+function setupAppIcon() {
+  try {
+    const canvas = document.createElement('canvas');
+    canvas.width = 180; canvas.height = 180;
+    const ctx = canvas.getContext('2d');
+
+    const grad = ctx.createLinearGradient(0, 0, 180, 180);
+    grad.addColorStop(0, '#7c3aed');
+    grad.addColorStop(0.5, '#a855f7');
+    grad.addColorStop(1, '#ec4899');
+    ctx.fillStyle = grad;
+
+    const r = 36;
+    ctx.beginPath();
+    ctx.moveTo(r, 0); ctx.lineTo(180 - r, 0);
+    ctx.arcTo(180, 0, 180, r, r);
+    ctx.lineTo(180, 180 - r);
+    ctx.arcTo(180, 180, 180 - r, 180, r);
+    ctx.lineTo(r, 180);
+    ctx.arcTo(0, 180, 0, 180 - r, r);
+    ctx.lineTo(0, r);
+    ctx.arcTo(0, 0, r, 0, r);
+    ctx.closePath();
+    ctx.fill();
+
+    ctx.font = '96px serif';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText('✨', 90, 96);
+
+    const link = document.createElement('link');
+    link.rel = 'apple-touch-icon';
+    link.href = canvas.toDataURL('image/png');
+    document.head.appendChild(link);
+  } catch {}
+}
+
+// ════════════════════════════════════════════════════════════════════════════
+// SERVICE WORKER REGISTRATION
+// ════════════════════════════════════════════════════════════════════════════
+async function registerSW() {
+  if (!('serviceWorker' in navigator)) return;
+  try {
+    const reg = await navigator.serviceWorker.register('./sw.js', { scope: './' });
+    // Wait for SW to be active then schedule
+    await navigator.serviceWorker.ready;
+    scheduleNotificationsIfEnabled();
+  } catch (e) {
+    console.warn('SW registration failed:', e);
+  }
+}
+
+// Reschedule when page becomes visible again (covers iOS SW sleep)
+document.addEventListener('visibilitychange', () => {
+  if (!document.hidden) {
+    scheduleNotificationsIfEnabled();
+    renderToday(); // refresh in case date changed
+    updateHeaderDate();
+  }
+});
+
+// ════════════════════════════════════════════════════════════════════════════
+// INIT
+// ════════════════════════════════════════════════════════════════════════════
+setupAppIcon();
+updateHeaderDate();
+renderToday();
+registerSW();
+
+// Refresh today view at midnight
+(function scheduleMidnightRefresh() {
+  const now = new Date();
+  const midnight = new Date(now.getFullYear(), now.getMonth(), now.getDate() + 1);
+  setTimeout(() => { renderToday(); updateHeaderDate(); scheduleMidnightRefresh(); }, midnight - now);
+})();
+</script>
+</body>
+</html>
